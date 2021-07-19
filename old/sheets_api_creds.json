@@ -1,0 +1,12 @@
+{
+  "type": "service_account",
+  "project_id": "indicadores-gerenciais-201907",
+  "private_key_id": "1da078a167226fe1be1901bb9ee903d921895825",
+  "private_key": "-----BEGIN PRIVATE KEY-----\nMIIEvgIBADANBgkqhkiG9w0BAQEFAASCBKgwggSkAgEAAoIBAQC50cSNypFyCd9Q\nQzkqjRHC4X0MKAXzvCjQZHl0+uYIFEBiKvSPrX/Xf1iJGp+hfTCThH8dE223zgWD\nm7uNgZDjg/EvyIZfYBEIUvn5sL7Av9dwEe7dJM2AZlH1gFmyuz3D6rqI/nnGjxp3\ns68Bvd0/0AsHj2tB5dzlIFmQNtaJB3zeGrw6IhuA+850GJ180O4n6PdIC2JRqNvq\n7fMM+17lZTLpBBVmygb+L8WYS0/2JyE4PbRQiKmMuB0nQv1iHk6Xub41f7Z2AkCO\n/6DQiZJpzYHJTy+d3bao2fpznoqstG2v9OebjVLtqyOdHY+3QSrLMm7FYzOKs7w6\n10R+7S3RAgMBAAECggEAEkAuCNqr5ypc0IRvv5QIOe69glWGgyJYlGI/8ytG72V0\nzueG6ns5Hpx7gMjYg6sY+640cXHEcZyGul7QAKWoik4d4Op2NzUnaxzCQGHZlHMr\nOO7L+hS4qesy0tTyym0dU4oxHM44vfW1fOsNLfO84L0BblJJ77ig1fDT1ygpsV7b\n2Qzp5hUZ6QBpq2Bbunu2/bdDR9pSEHyD81yLsV+M49BSDM7ostoidBicMNCebDCA\nZxLFfDMnw+CwQesNE2v/ZV0rQKBUkYycGtcbUwf5qtH9HOMUxylyFWjtiOKKvXwt\n+B+cp6WBhV7nAUG300E/SuEMsXQZ4dRVwsz3CAFDuQKBgQDoTOx+WlmfDGBSO6t9\n/tgg8GDCUosPa/jPoDXvrtAqX/+RCy/dbTxSrwTyfiyD5MGD4XGv2gbIXP/JfJ1p\n6mTUU9fYv+aUiFAtaZ1c8LRNnnLTcCNP6EuffkGvy21kT5EjB401tJUBTJVrfj85\nL8JvLuuS2lD6b9rx73FT4hxGCQKBgQDMxuF53Rk/Aqp7Y3308tNsSwti3WfylHPa\nNJOXQQbmGS6dX0y1inhhRgCmsN/TUZ/5g9ScTyYD7MhVjSybt1ret4iQ/T+PklMu\nLWJgvhSgMODGrt6umPYouyBt8PHaw2lrXgPy0V983C6x/ph1FZVe2tZwW5xp1j0L\nQTuUp1LbiQKBgQCSguGtl2Jq861UcBnrL2406Ca+qLzYDyswGEWsU78q2r0fR8T6\njMi9BXHDV1zQGtkKSogfdw1MFYumEphdkt3hJLhAFlhhWc/ntHLxiUbOpZ6aSGGd\nJk972m+nZlAqMhzB0SN4udo4pYqf71IEyWCCKz+csWDdcurOKEx7sWJPsQKBgEm2\nYZ3DZ/4VkJa/9qxA6Lg3v06EUpGwvI9Uk7hDsR8M+4msr2k+Ah1J3JwkWT2xSTvB\nJ7xohU+uYWLiYadf9jbrrB48+y9MReL+dUZLxhLv5Um/0urYput8iKzqqbTM2NrM\nSfGTSqMggzKRagHjlhRCBCUH5SL3+ptdjPvyy1G5AoGBAK3B57aZe0qKTrzhIz+m\nHKLiL5dbiq+o9mPRKHr5FXJwaU8JQSOG67ixdr76lRsqYODZe3wvnEHUCDuhHcO2\nReYxRXjcPXn41P30S+SQYKeVEelV32dttYE7VRcxzUx4aptMw0HalGK2mYLtTJYz\ndUWN2x0RA9bcjTTv0x3o2rEt\n-----END PRIVATE KEY-----\n",
+  "client_email": "plorio@indicadores-gerenciais-201907.iam.gserviceaccount.com",
+  "client_id": "116491761623787501948",
+  "auth_uri": "https://accounts.google.com/o/oauth2/auth",
+  "token_uri": "https://oauth2.googleapis.com/token",
+  "auth_provider_x509_cert_url": "https://www.googleapis.com/oauth2/v1/certs",
+  "client_x509_cert_url": "https://www.googleapis.com/robot/v1/metadata/x509/plorio%40indicadores-gerenciais-201907.iam.gserviceaccount.com"
+}
