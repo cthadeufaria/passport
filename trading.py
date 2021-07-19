@@ -1,6 +1,6 @@
-from handle_api import account_info, tickers_list
+from functions.handle_api import account_info, tickers_list
 # from handle_websocket import best_price
-from modelling import delta_price
+from functions.modelling import delta_price
 import time
 from threading import Thread
 

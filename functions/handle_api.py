@@ -3,7 +3,7 @@ import plotly.graph_objects as go
 import requests, time, hmac, hashlib
 import pprint # used for debugging
 from urllib.parse import urlencode
-from initialize import initialize
+from functions import initialize
 
 endpoints = initialize('test')[0]
 auth_dict = initialize('test')[1]

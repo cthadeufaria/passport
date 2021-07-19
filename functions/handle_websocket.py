@@ -1,7 +1,7 @@
 from handle_api import tickers_list
 from binance import ThreadedWebsocketManager, streams
-from initialize import initialize
-from trading import check   
+from functions import initialize
+from trading import check
 
 endpoints = initialize('test')[0]
 auth_dict = initialize('test')[1]
