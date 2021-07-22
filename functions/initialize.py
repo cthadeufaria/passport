@@ -1,4 +1,4 @@
-
+import os
 
 
 def initialize(api_type = 'test'):
@@ -31,13 +31,13 @@ def initialize(api_type = 'test'):
     # choose auth for each main endpoint
     if main_endpoint[:11] == 'https://api':
         auth_dict = {
-            'key' : '6PsKNupfO7ubDdgBaDv3KDveMp4PAAUE2ywIV1bVmZHZ9lIxfbMDWSbSt1XoMJXe',
-            'skey' : 'w24jgAs9WIjPz8ss7T9kLILl1tSpl86pbxMrcYE2e6cr5q9M4LHYaKPeivw15k9v',
+            'key' : os.environ.get('SPOT_KEY'),
+            'skey' : os.environ.get('SPOT_SKEY'),
         }
     elif main_endpoint == 'https://testnet.binance.vision':
         auth_dict = {
-            'key' : '2fwlKq8Tzw0EKVXKi5I1gV7dNL7tPZcA7be4CKnZYPRxO7GkP7GY8iyDTfie4sTl',
-            'skey' : 'T8pxHPP9Z1HIrL2a2JnMhwOiD7xzDmSz6UXg161cRg6G2NXD7cK70UxNTuCAiuIh',
+            'key' : os.environ.get('TEST_KEY'),
+            'skey' : os.environ.get('TEST_SKEY'),
         }
         
     print(endpoints)

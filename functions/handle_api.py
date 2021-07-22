@@ -3,7 +3,7 @@ import plotly.graph_objects as go
 import requests, time, hmac, hashlib
 import pprint # used for debugging
 from urllib.parse import urlencode
-from functions import initialize
+from initialize import initialize    
 
 endpoints = initialize('test')[0]
 auth_dict = initialize('test')[1]
@@ -20,7 +20,7 @@ def ping():
     r = requests.get(endpoints['test'])
     print('server ping: ' + str(r))
 
-    
+
 def get_timestamp():
     t = int(time.time()*1000)
     servertime = requests.get(endpoints['server_time'])
@@ -137,6 +137,3 @@ def prices():
         Pbuy[i['symbol']] = i['askPrice']
         Psell[i['symbol']] = i['bidPrice']
     return Pbuy, Psell
-
-price_hist()
-binance_data()
