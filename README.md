@@ -1,11 +1,5 @@
 # PASSPORT
 
-# To do
-2. Will a class be useful fo handling websocket data?
-3. How to structure project? What will be the main function and calls
-4. Understand and implement asyncio module
-
-
 # Git bullets
 config inicial
     git config --global user.name "<nome do usuario github>"
