@@ -144,29 +144,3 @@ def prices():
         Pbuy[i['symbol']] = i['askPrice']
         Psell[i['symbol']] = i['bidPrice']
     return Pbuy, Psell
-
-series = pd.read_csv('/home/carlos/Documents/BTC_data/BNBBTC.csv')
-series['return'] = series['close']-series['open']
-n = 4 # imi period
-series['gains'] = 0
-series['losses'] = 0
-series['imi'] = 0
-for i in series.index:
-    if i < n:
-        pass
-    else:
-        for j in range(0,n):
-            if series['return'][i-(j+1)] >=0:
-                series['gains'][i] = series['gains'][i] + series['return'][i-(j+1)]
-            else:
-                series['losses'][i] = series['losses'][i] + series['return'][i-(j+1)]
-        series['imi'][i] = series['gains'][i]/(series['gains'][i]-series['losses'][i])
-series.to_csv('/home/carlos/Documents/BTC_data/BNBBTC_2.csv')
-plt.plot(s)
-plt.show()
-
-plot_acf(s)
-plt.show()
-
-plot_pacf(s)
-plt.show()
