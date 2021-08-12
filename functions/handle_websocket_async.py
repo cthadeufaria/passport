@@ -5,7 +5,7 @@ from initialize import initialize
 endpoints = initialize('test')[0]
 auth_dict = initialize('test')[1]
 
-async def main(tickers):
+async def best_price_async(tickers):
     client = await AsyncClient.create(api_key=auth_dict['key'], api_secret=auth_dict['skey'])
     bm = BinanceSocketManager(client, user_timeout=5)
     # start any sockets here, i.e a trade socket
@@ -24,7 +24,7 @@ async def main(tickers):
     #     while True:
     #         res = await tscm.recv()
     #         print(res)
-
+    
     # enter the context manager
     await ts.__aenter__()
     # receive a message
@@ -35,10 +35,10 @@ async def main(tickers):
 
     # await client.close_connection()
 
-if __name__ == "__main__":
+# if __name__ == "__main__":
 
-    loop = asyncio.get_event_loop()
-    loop.run_until_complete(main(tickers))
+#     loop = asyncio.get_event_loop()
+#     loop.run_until_complete(main(tickers))
 
 # # set a timeout of 60 seconds
 # bm = BinanceSocketManager(client, user_timeout=60)
