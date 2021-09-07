@@ -24,3 +24,5 @@ git merge <nome do branch para merge>
 2. Book mecanotherapy
 3. Book teeth cleansing
 4. Surf lessons
+5. Upwork proposal
+6. Search for development course in Brisbane

@@ -75,8 +75,8 @@ def candlestick(tickers):
         r4 = requests.get(endpoints['candlestick']+'?'+'symbol='+ t +'&interval=1h&limit=1000', auth=(auth_dict['key'], auth_dict['skey']))
         candle_columns=['open_datetime', 'open', 'high', 'low', 'close', 'volume', 'close_datetime', 'quote_volume', 'n_trades', 'taker_buy_asset_vol', 'taker_buy_quote_vol', 'ignore']
         candle_info = pd.DataFrame(data=r4.json(), columns=candle_columns)
-        path = '/home/carlos/Documents/BTC_data_2/'+t+'.csv'
-        candle_info.to_csv(path)
+        # path = '/home/carlos/Documents/BTC_data_2/'+t+'.csv'
+        # candle_info.to_csv(path)
         data[t] = candle_info
         # Plot
         # fig = go.Figure(data=[go.Candlestick(x=candle_info['open_datetime'], open=candle_info['open'], high=candle_info['high'], low=candle_info['low'], close=candle_info['close'])])
