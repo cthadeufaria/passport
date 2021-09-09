@@ -91,7 +91,7 @@ def beta(data, base_asset='BTCBUSD', p=0.7):
     return series
 
 
-def momentum_quality(data, n=12, p=0.5):
+def momentum_quality(data, n=18, p=0.5):
     # ID = sign(PRET) * (% months negative - % months positive)
     # -1 <= ID <= 1
     # -1 = high quality momentum / 1 = bad quality momentum
@@ -125,7 +125,7 @@ def momentum_quality(data, n=12, p=0.5):
     return series
     
 
-def momentum_quantity(data, n=12):
+def momentum_quantity(data, n=18):
     # n = imi period
     # m = investment period
     momentum = {}
@@ -158,6 +158,7 @@ def momentum_quantity(data, n=12):
 
 
 def markovitz(data):
+    selected=list(data.keys())
     # empty lists to store returns, volatility and weights of imiginary portfolios
     port_returns = []
     port_volatility = []
@@ -175,24 +176,24 @@ def markovitz(data):
         volatility = np.sqrt(np.dot(weights.T, np.dot(cov_annual, weights)))
         port_returns.append(returns)
         port_volatility.append(volatility)
-        stock_weights.append(weights)
+        stock_weights.append(weights)   
 
     # a dictionary for Returns and Risk values of each portfolio
     portfolio = {'Returns': port_returns,
                 'Volatility': port_volatility}
 
     # extend original dictionary to accomodate each ticker and weight in the portfolio
-    for counter,symbol in enumerate(selected):
+    for counter,symbol in enumerate(selected): # selected = ['CNP', 'F', 'WMT', 'GE', 'TSLA'] : tickers' list for selected assets
         portfolio[symbol+' weight'] = [weight[counter] for weight in stock_weights]
 
     # make a nice dataframe of the extended dictionary
     df = pd.DataFrame(portfolio)
 
     # get better labels for desired arrangement of columns
-    column_order = ['Returns', 'Volatility'] + [stock+' weight' for stock in selected]
+    column_order = ['Returns', 'Volatility'] + [stock+' weight' for stock in selected] # selected = ['CNP', 'F', 'WMT', 'GE', 'TSLA'] : tickers' list for selected assets
 
     # reorder dataframe columns
-    df = df[column_order]
+    df = df[column_order]   
 
     df.head()
 
