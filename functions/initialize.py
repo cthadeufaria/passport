@@ -21,6 +21,8 @@ def initialize(api_type = 'test'):
         'acc_snapshot' : '/sapi/v1/accountSnapshot',
         'price' : '/api/v3/ticker/price',
         'price_hist' : '/api/v3/historicalTrades',
+        'order' : '/api/v3/order',
+        'test_order' : '/api/v3/order/test',
     }
 
     # complete endpoints strings
@@ -29,7 +31,7 @@ def initialize(api_type = 'test'):
             endpoints[i] = main_endpoint + endpoints[i]
 
     # choose auth for each main endpoint
-    if main_endpoint[:11] == 'https://api':
+    if main_endpoint == 'https://api1.binance.com':
         auth_dict = {
             'key' : os.environ.get('SPOT_KEY'),
             'skey' : os.environ.get('SPOT_SKEY'),

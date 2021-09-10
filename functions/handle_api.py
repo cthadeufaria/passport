@@ -127,6 +127,25 @@ def account_snapshot(apikey=auth_dict['key']):
     return data.json()
 
 
+def order(symbol, apikey=auth_dict['key']):
+    servertimeint = get_timestamp()[0]
+    endpoint_params = {
+            "symbol" : symbol,
+            "side" : "BUY",
+            "type" : "SPOT",
+            "timestamp" : servertimeint,
+        }
+    hashedsig_dict = sha256_signature(endpoint_params)
+    endpoint_params.update(hashedsig_dict)
+    data = requests.get(endpoints['order'],
+        params = endpoint_params,
+        headers = {
+            "X-MBX-APIKEY" : apikey,
+        }
+    )
+    return data.json()
+
+
 def balances():
     Na = {}
     # d = account_snapshot()['snapshotVos'][0]['data']['balances']
