@@ -1,9 +1,101 @@
 # Python file for strategies' analysis and testing.
-import pandas as pd
+import pandas as pd, numpy as np
 import os
+from sklearn.model_selection import train_test_split
+from sklearn.linear_model import LogisticRegression
+from sklearn import metrics
+from scipy.stats import spearmanr
+from scipy.stats import pearsonr
+# from scipy.stats.stats import moment
+from handle_api import candlestick, tickers_list
 
 
-def momentum_analysis():
+def test_momentum(data={'BNBBTC' : pd.read_csv('/home/carlos/Documents/BTC_data/BNBBTC.csv')}):
+    # 
+    cols = [
+        'Asset', 'Pearsonr correlation', 'Spearmanr correlation', 
+        'Pearsonr correlation (0.7 <= x <= 0.3)', 'Spearmanr correlation (0.7 <= x <= 0.3)', 
+        'cnf_matrix', 'Log Accuracy', 'Log Precision', 'Log Recall'
+    ]
+    # results = pd.DataFrame(None, columns=cols)
+    for n in range(18, 25):
+        for m in range(18, 25):
+            results = pd.DataFrame(None, columns=cols)
+            for d in data.keys():
+                series = data[d]
+                # n = 24 # imi period
+                # m = 12 # investment period
+                # define needed variables
+                series['gains'] = 0.0
+                series['losses'] = 0.0
+                series['imi'] = 0.0
+                series['return_m'] = 0.0
+                series['close'] = pd.to_numeric(series['close'])
+                series['open'] = pd.to_numeric(series['open'])
+                series['return'] = series['close']-series['open']
+                for i in series.index:
+                    if i < n:
+                        pass
+                    else:   
+                        series['gains'][i] = series['return'][i-n:i][series['return']>=0].sum()
+                        series['losses'][i] = series['return'][i-n:i][series['return']<0].sum()
+                        if series['gains'][i]-series['losses'][i] == 0:
+                            series['imi'][i] = 0.5
+                        else:
+                            series['imi'][i] = series['gains'][i]/(series['gains'][i]-series['losses'][i])
+                        if i+m-1 >= len(series):
+                            pass
+                        else:
+                            series['return_m'][i] = (series['close'][i+m-1]-series['open'][i])/series['open'][i]
+                # series.to_csv('/home/carlos/Documents/BTC_data/BNBBTC_2.csv')
+
+                corr, _ = pearsonr(series['imi'][n:len(series)-m], series['return_m'][n:len(series)-m])
+                print('Pearsonr correlation: %.3f' % corr)
+                corr2, _ = spearmanr(series['imi'][n:len(series)-m], series['return_m'][n:len(series)-m])
+                print('Spearmanr correlation: %.3f' % corr2)
+
+                # plt.plot(series['open_datetime'][n:len(series)-m], series['return_m'][n:len(series)-m], 'r')
+                # plt.plot(series['open_datetime'][n:len(series)-m], series['imi'][n:len(series)-m], 'b')
+                # plt.show()
+
+                # series_b = series[((series['imi']<=0.3) | (series['imi']>=0.7)) & (series['gains']!=0)].copy()
+                series_b = series.copy()
+                if len(series_b) == 0:
+                    corr_b = 0
+                    corr2_b = 0
+                else:
+                    corr_b, _ = pearsonr(series_b['imi'], series_b['return_m'])
+                    print('Pearsonr correlation (0.7 <= x <= 0.3): %.3f' % corr_b)
+                    corr2_b, _ = spearmanr(series_b['imi'], series_b['return_m'])
+                    print('Spearmanr correlation (0.7 <= x <= 0.3): %.3f' % corr2_b)
+
+                # Logistics Regression
+                series['return_m'] = np.where(series['return_m']>=0, 1, 0)
+                X_train, X_test, y_train, y_test = train_test_split(series['imi'], series['return_m'], test_size=0.25, random_state=0)
+                logreg = LogisticRegression()
+                logreg.fit(np.array(X_train).reshape(-1, 1),y_train)
+                y_pred=logreg.predict(np.array(X_test).reshape(-1, 1))
+                cnf_matrix = metrics.confusion_matrix(y_test, y_pred)
+                print('cnf_matrix')
+                print(cnf_matrix)
+                print("Accuracy:",metrics.accuracy_score(y_test, y_pred))
+                print("Precision:",metrics.precision_score(y_test, y_pred))
+                print("Recall:",metrics.recall_score(y_test, y_pred))
+
+                corr_data = [
+                    d, corr, corr2, corr_b, corr2_b, str(cnf_matrix), 
+                    metrics.accuracy_score(y_test, y_pred), 
+                    metrics.precision_score(y_test, y_pred), 
+                    metrics.recall_score(y_test, y_pred)
+                ]
+                partial_result = dict(zip(cols, corr_data))
+                results = results.append(pd.DataFrame(partial_result, index=[len(results)]))
+                print(results)
+            results.to_csv('/home/carlos/Documents/Results_2/results' + str(n) + '_' + str(m) + '.csv')
+
+
+
+def results_analysis():
     final_path = '/home/carlos/Documents/Test_Results'
     path = '/home/carlos/Documents/Results'
     list = os.listdir(path)
@@ -31,108 +123,4 @@ def momentum_analysis():
     results.to_csv(final_path + '/momentum_analysis.csv')
 
 
-def markovitz_model(data):
-    # import needed modules
-    # import quandl
-    import pandas as pd
-    import numpy as np
-    import matplotlib.pyplot as plt
-
-    ####################################################################################################################################################################################
-    # get adjusted closing prices of 5 selected companies with Quandl
-    # quandl.ApiConfig.api_key = '3QMrpN426duegrHv6o4v'
-    # selected = ['CNP', 'F', 'WMT', 'GE', 'TSLA']
-    # data = quandl.get_table('WIKI/PRICES', ticker = selected,
-    #                         qopts = { 'columns': ['date', 'ticker', 'adj_close'] },
-    #                         date = { 'gte': '2014-1-1', 'lte': '2016-12-31' }, paginate=True)
-
-    # reorganise data pulled by setting date as index with
-    # columns of tickers and their corresponding adjusted prices
-    # clean = data.set_index('date')
-    # table = clean.pivot(columns='ticker')
-    ####################################################################################################################################################################################
-
-    selected = list(data.keys())
-    table = pd.DataFrame(None)
-    for ticker in selected:
-        t = data[ticker][['open_datetime', 'close']]
-        t.set_index('open_datetime', inplace=True)
-        t.columns = [ticker]
-
-        if len(table) == 0:
-            table = t.copy()
-        else:
-            table = t.join(table)
-
-    # calculate daily and annual returns of the stocks
-    returns_daily = table.pct_change()
-    returns_annual = returns_daily.mean() * 250
-
-    # get daily and covariance of returns of the stock
-    cov_daily = returns_daily.cov()
-    cov_annual = cov_daily * 250
-
-    # empty lists to store returns, volatility and weights of imiginary portfolios
-    port_returns = []
-    port_volatility = []
-    sharpe_ratio = []
-    stock_weights = []
-
-    # set the number of combinations for imaginary portfolios
-    num_assets = len(selected)
-    num_portfolios = 50000
-
-    #set random seed for reproduction's sake
-    np.random.seed(101)
-
-    # populate the empty lists with each portfolios returns,risk and weights
-    for single_portfolio in range(num_portfolios):
-        weights = np.random.random(num_assets)
-        weights /= np.sum(weights)
-        returns = np.dot(weights, returns_annual)
-        volatility = np.sqrt(np.dot(weights.T, np.dot(cov_annual, weights)))
-        sharpe = returns / volatility
-        sharpe_ratio.append(sharpe)
-        port_returns.append(returns)
-        port_volatility.append(volatility)
-        stock_weights.append(weights)
-
-    # a dictionary for Returns and Risk values of each portfolio
-    portfolio = {'Returns': port_returns,
-                'Volatility': port_volatility,
-                'Sharpe Ratio': sharpe_ratio}
-
-    # extend original dictionary to accomodate each ticker and weight in the portfolio
-    for counter,symbol in enumerate(selected):
-        portfolio[symbol+' Weight'] = [Weight[counter] for Weight in stock_weights]
-
-    # make a nice dataframe of the extended dictionary
-    df = pd.DataFrame(portfolio)
-
-    # get better labels for desired arrangement of columns
-    column_order = ['Returns', 'Volatility', 'Sharpe Ratio'] + [stock+' Weight' for stock in selected]
-
-    # reorder dataframe columns
-    df = df[column_order]
-
-    # find min Volatility & max sharpe values in the dataframe (df)
-    min_volatility = df['Volatility'].min()
-    max_sharpe = df['Sharpe Ratio'].max()
-
-    # use the min, max values to locate and create the two special portfolios
-    sharpe_portfolio = df.loc[df['Sharpe Ratio'] == max_sharpe]
-    min_variance_port = df.loc[df['Volatility'] == min_volatility]
-
-    plt.style.use('seaborn-dark')
-    df.plot.scatter(x='Volatility', y='Returns', c='Sharpe Ratio',
-                    cmap='RdYlGn', edgecolors='black', figsize=(10, 8), grid=True)
-    plt.scatter(x=sharpe_portfolio['Volatility'], y=sharpe_portfolio['Returns'], c='red', marker='D', s=200)
-    plt.scatter(x=min_variance_port['Volatility'], y=min_variance_port['Returns'], c='blue', marker='D', s=200 )
-    plt.xlabel('Volatility (Std. Deviation)')
-    plt.ylabel('Expected Returns')
-    plt.title('Efficient Frontier')
-    plt.show()
-    plt.savefig('foo.png')
-
-    print(min_variance_port.T)
-    print(sharpe_portfolio.T)
+d = candlestick(tickers_list())

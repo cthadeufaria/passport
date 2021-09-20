@@ -1,7 +1,7 @@
 import os
 
 
-def initialize(api_type = 'test'):
+def initialize(api_type = 'prod'):
 
     if api_type == 'test':
         main_endpoint = 'https://testnet.binance.vision'
