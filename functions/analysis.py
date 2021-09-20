@@ -91,7 +91,7 @@ def test_momentum(data={'BNBBTC' : pd.read_csv('/home/carlos/Documents/BTC_data/
                 partial_result = dict(zip(cols, corr_data))
                 results = results.append(pd.DataFrame(partial_result, index=[len(results)]))
                 print(results)
-            results.to_csv('/home/carlos/Documents/Results_2/results' + str(n) + '_' + str(m) + '.csv')
+            results.to_csv('/home/carlos/Documents/Results/Results_2/results' + str(n) + '_' + str(m) + '.csv')
 
 
 
