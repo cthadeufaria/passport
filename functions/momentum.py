@@ -5,8 +5,8 @@ import pandas as pd
 import matplotlib.pyplot as plt
 import numpy as np
 from sklearn.linear_model import LinearRegression
-
 import math
+from analysis import test_momentum
 
 
 # Portfolio 1 - Markovitz Intraday Momentum:
@@ -27,6 +27,56 @@ import math
 
 # Portfolio 2 - Highest Daily Gainers Chasing:
 # Test highest gainers on last 24h for momentum predictability
+
+########################################################################################################
+
+# assemble portfolio
+
+def momentum_quantity(data, n=20, key='last', cut=0.5):
+    # key = 'last' => calculate last imi's / key = 'all' => calculate all imi's
+    # n = imi period
+    # m = investment period
+    momentum = {}
+    momentum_filter = {}
+    for d in data.keys():
+        series = data[d].copy()
+        series['close'] = pd.to_numeric(series['close'])
+        series['open'] = pd.to_numeric(series['open'])
+        series['return'] = series['close']-series['open']
+        if key == 'all':
+            series['gains'] = 0.0
+            series['losses'] = 0.0
+            series['imi'] = 0.0
+            series['return_m'] = 0.0
+            for i in series.index:
+                if i < n:
+                    pass
+                else:
+                    series['gains'][i] = series['return'][i-n:i][series['return']>=0].sum()
+                    series['losses'][i] = series['return'][i-n:i][series['return']<0].sum()
+                    if series['gains'][i]-series['losses'][i] == 0:
+                        series['imi'][i] = 0.5
+                    else:
+                        series['imi'][i] = series['gains'][i]/(series['gains'][i]-series['losses'][i])
+                    # if i+m-1 >= len(series):
+                    #     pass
+                    # else:
+                    #     series['return_m'][i] = (series['close'][i+m-1]-series['open'][i])/series['open'][i]
+        elif key == 'last':
+            i = series.index.max()
+            gains = series['return'][i-n:i][series['return']>=0].sum()
+            losses = series['return'][i-n:i][series['return']<0].sum()
+            if gains-losses == 0:
+                pass
+            elif gains/(gains-losses)<=cut:
+                momentum_filter[d] = gains/(gains-losses)
+            else:
+                pass
+        momentum[d] = series
+    if key == 'last':
+        momentum = {k:v for k,v in momentum.items() if (pd.Series(momentum_filter.keys()) == k).any()}
+    print('quantity series: ' + str(len(momentum)) + ' rows')
+    return momentum
 
 
 def liquidity(data, p=0.7):
@@ -87,7 +137,7 @@ def beta(data, base_asset='BTCBUSD', p=0.7):
     return series
 
 
-def momentum_quality(data, n=18, p=0.5):
+def momentum_quality(data, n=20, p=0.5):
     # ID = sign(PRET) * (% months negative - % months positive)
     # -1 <= ID <= 1
     # -1 = high quality momentum / 1 = bad quality momentum
@@ -119,38 +169,6 @@ def momentum_quality(data, n=18, p=0.5):
             series[key] = value
     print('quality series: ' + str(len(series)) + ' rows')
     return series
-    
-
-def momentum_quantity(data, n=18):
-    # n = imi period
-    # m = investment period
-    momentum = {}
-    for d in data.keys():
-        series = data[d].copy()
-        series['gains'] = 0.0
-        series['losses'] = 0.0
-        series['imi'] = 0.0
-        series['return_m'] = 0.0
-        series['close'] = pd.to_numeric(series['close'])
-        series['open'] = pd.to_numeric(series['open'])
-        series['return'] = series['close']-series['open']
-        for i in series.index:
-            if i < n:
-                pass
-            else:
-                series['gains'][i] = series['return'][i-n:i][series['return']>=0].sum()
-                series['losses'][i] = series['return'][i-n:i][series['return']<0].sum()
-                if series['gains'][i]-series['losses'][i] == 0:
-                    series['imi'][i] = 0.5
-                else:
-                    series['imi'][i] = series['gains'][i]/(series['gains'][i]-series['losses'][i])
-                # if i+m-1 >= len(series):
-                #     pass
-                # else:
-                #     series['return_m'][i] = (series['close'][i+m-1]-series['open'][i])/series['open'][i]
-        momentum[d] = series
-    print('quantity series: ' + str(len(momentum)) + ' rows')
-    return momentum
 
 
 def markovitz(data):
@@ -263,12 +281,17 @@ def pnl():
 
 
 
-# data=candlestick(tickers_list(market='BTC'))
-# data={'BNBBTC' : pd.read_csv('/home/carlos/Documents/BTC_data/BNBBTC.csv')}
-d = momentum_quantity(momentum_quality(beta(liquidity(candlestick(tickers_list(market='BTC'))))))
-# test_momentum(data)
+# full assets data from api:
+d = candlestick(tickers_list())
 
-# plot_acf(s)
-# plt.show()
-# plot_pacf(s)
-# plt.show()
+# run regressions and save clean_results:
+# test_momentum(d)
+
+# import clean_results (logistics regression's precision greater than 0.7):
+clean_results = pd.read_csv('/home/carlos/Documents/Results/clean_results.csv')
+
+# create new dict from d filtering assets from clean_results:
+clean_data = {k:v for k,v in d.items() if (clean_results['Asset'] == k).any()}
+
+# build portfolio:
+a = momentum_quantity(clean_data)

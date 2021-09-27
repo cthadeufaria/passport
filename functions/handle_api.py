@@ -67,12 +67,12 @@ def price_hist(tickers=['BNBBTC'], apikey=auth_dict['key']):
     return data
 
 
-def candlestick(tickers):
+def candlestick(tickers, limit=1000):
     data = {}
     if type(tickers) != list:
         tickers=[tickers]
     for t in tickers:
-        r4 = requests.get(endpoints['candlestick']+'?'+'symbol='+ t +'&interval=1h&limit=1000', auth=(auth_dict['key'], auth_dict['skey']))
+        r4 = requests.get(endpoints['candlestick']+'?'+'symbol='+ t +'&interval=1h&limit=' + str(limit), auth=(auth_dict['key'], auth_dict['skey']))
         candle_columns=['open_datetime', 'open', 'high', 'low', 'close', 'volume', 'close_datetime', 'quote_volume', 'n_trades', 'taker_buy_asset_vol', 'taker_buy_quote_vol', 'ignore']
         candle_info = pd.DataFrame(data=r4.json(), columns=candle_columns)
         # path = '/home/carlos/Documents/BTC_data_2/'+t+'.csv'
