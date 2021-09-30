@@ -30,8 +30,6 @@ from analysis import test_momentum
 
 ########################################################################################################
 
-# assemble portfolio
-
 def momentum_quantity(data, n=20, key='last', cut=0.5):
     # key = 'last' => calculate last imi's / key = 'all' => calculate all imi's
     # n = imi period
@@ -94,8 +92,8 @@ def liquidity(data, p=0.7):
     return series
 
 
-def beta(data, base_asset='BTCBUSD', p=0.7):
-    market = candlestick(base_asset)[base_asset]
+def beta(data, market, base_asset='BTCBUSD', p=0.7, cut=0.5):
+    # market = candlestick(base_asset)[base_asset]
     market_delta = pd.DataFrame(
         data=(pd.to_numeric(market['close'])-pd.to_numeric(market['open']))/pd.to_numeric(market['open']),
         columns=[base_asset]
@@ -127,7 +125,8 @@ def beta(data, base_asset='BTCBUSD', p=0.7):
         print(str(c)+'s beta = '+str(model.coef_[0]))
 
     beta = dict(sorted(beta.items(), key=lambda x: x[1]))
-    beta = dict(list(beta.items())[:math.ceil(len(beta)*p)])
+    # beta = dict(list(beta.items())[:math.ceil(len(beta)*p)])
+    beta = {k:v for k,v in beta.items() if v<=cut}
 
     series = {}
     for (key, value) in data.items():
@@ -137,7 +136,7 @@ def beta(data, base_asset='BTCBUSD', p=0.7):
     return series
 
 
-def momentum_quality(data, n=20, p=0.5):
+def momentum_quality(data, n=20, p=0.5, cut=0):
     # ID = sign(PRET) * (% months negative - % months positive)
     # -1 <= ID <= 1
     # -1 = high quality momentum / 1 = bad quality momentum
@@ -161,7 +160,8 @@ def momentum_quality(data, n=20, p=0.5):
         quality[d] = (float(data[d]['return_n'][-1:]))*((float(data[d]['n_neg'][-1:])/12)-(float(data[d]['n_pos'][-1:])/12))
     
     quality = dict(sorted(quality.items(), key=lambda x: x[1]))
-    quality = dict(list(quality.items())[:math.ceil(len(quality)*p)])
+    # quality = dict(list(quality.items())[:math.ceil(len(quality)*p)])
+    quality = {k:v for k,v in quality.items() if v<=cut}
 
     series = {}
     for (key, value) in data.items():
@@ -271,6 +271,8 @@ def markovitz(data):
     print(min_variance_port.T)
     print(sharpe_portfolio.T)
 
+    return min_variance_port, sharpe_portfolio
+
 
 def portfolio_allocation():
     pass
@@ -281,17 +283,36 @@ def pnl():
 
 
 
-# full assets data from api:
-d = candlestick(tickers_list())
+# 0. full assets data from api:
+t = tickers_list()
+t1 = t.copy()
+t.append('BTCBUSD')
 
-# run regressions and save clean_results:
-# test_momentum(d)
+d = candlestick(t)
+d1 = d['BTCBUSD']
+d2 = {k:v for k,v in d.items() if k in t1}
 
-# import clean_results (logistics regression's precision greater than 0.7):
+# 1. run regressions and save clean_results:
+test_momentum(d2)
+
+# 1.1. import clean_results (logistics regression's precision greater than 0.7):
 clean_results = pd.read_csv('/home/carlos/Documents/Results/clean_results.csv')
 
-# create new dict from d filtering assets from clean_results:
+# 1.2. create new dict from d filtering assets from clean_results:
 clean_data = {k:v for k,v in d.items() if (clean_results['Asset'] == k).any()}
 
-# build portfolio:
+# 2. build portfolio:
+# 2.1. calculate and filter most relevant imi's:
 a = momentum_quantity(clean_data)
+
+# 2.2. filter assets by liquidity:
+b = liquidity(a)
+
+# 2.3. filter betas:
+c = beta(data=b, market=d1)
+
+# 2.4. filter momentum quality: (being ignored for now)
+# d = momentum_quality(c)
+
+# 2.5. alocate portfolio proportions with Markovitz:
+e, f = markovitz(c)

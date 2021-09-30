@@ -93,7 +93,7 @@ def test_momentum(data={'BNBBTC' : pd.read_csv('/home/carlos/Documents/BTC_data/
                 partial_result = dict(zip(cols, corr_data))
                 results = results.append(pd.DataFrame(partial_result, index=[len(results)]))
                 print(results)
-            results.to_csv('/home/carlos/Documents/Results/Results_3/results' + str(n) + '_' + str(m) + '.csv')
+            results.to_csv('/home/carlos/Documents/Results/MainResults/results' + str(n) + '_' + str(m) + '.csv')
 
             clean_results = results[results['Log Precision'] >= 0.7].copy()
             clean_results.to_csv('/home/carlos/Documents/Results/clean_results.csv')
