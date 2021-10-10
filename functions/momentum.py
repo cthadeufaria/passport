@@ -1,12 +1,14 @@
 # from pandas.core.dtypes import base
 # from pandas.core.frame import DataFrame
-from handle_api import candlestick, tickers_list
+from handle_api import candlestick, tickers_list, order_book
 import pandas as pd
 import matplotlib.pyplot as plt
 import numpy as np
 from sklearn.linear_model import LinearRegression
 import math
 from analysis import test_momentum
+import time
+import pickle
 
 
 # Portfolio 1 - Markovitz Intraday Momentum:
@@ -77,22 +79,22 @@ def momentum_quantity(data, n=20, key='last', cut=0.5):
     return momentum
 
 
-def liquidity(data, p=0.7):
+def liquidity(data, p=0.7, cut=10000.0):
     volume = {}
     print('input data: ' + str(len(data)) + ' rows')
     for d in data.keys():
+        # volume[d] = pd.to_numeric(data[d]['volume']).mean()
         volume[d] = pd.to_numeric(data[d]['volume']).mean()
-    volume = dict(sorted(volume.items(), key=lambda x: x[1], reverse=True))
-    volume = dict(list(volume.items())[:math.ceil(len(volume)*p)])
+    # volume = dict(sorted(volume.items(), key=lambda x: x[1], reverse=True))
+    # volume = dict(list(volume.items())[:math.ceil(len(volume)*p)])
+    volume = {k:v for k,v in volume.items() if v >= cut}
     series = {}
-    for (key, value) in data.items():
-        if key in volume.keys():
-            series[key] = value
+    series = {k:v for k,v in data.items() if (pd.Series(volume.keys()) == k).any()}
     print('liquidity series: ' + str(len(series)) + ' rows')
     return series
 
-
-def beta(data, market, base_asset='BTCBUSD', p=0.7, cut=0.5):
+        
+def beta(data, market, base_asset, p=0.7, cut=0.5):
     # market = candlestick(base_asset)[base_asset]
     market_delta = pd.DataFrame(
         data=(pd.to_numeric(market['close'])-pd.to_numeric(market['open']))/pd.to_numeric(market['open']),
@@ -113,7 +115,10 @@ def beta(data, market, base_asset='BTCBUSD', p=0.7, cut=0.5):
                 ).set_index(data[s]['open_datetime']),
                 how='left'
             )
-    df = df.join(market_delta, how ='left').dropna(axis=1)
+    df.dropna(axis=1, inplace=True)
+    df = df.join(market_delta, how ='left')
+    df.dropna(inplace=True)
+    
     beta = {}
     for c in df.columns:
         # Create arrays for x and y variables in the regression model
@@ -124,7 +129,7 @@ def beta(data, market, base_asset='BTCBUSD', p=0.7, cut=0.5):
         beta[c] = (model.coef_[0])
         print(str(c)+'s beta = '+str(model.coef_[0]))
 
-    beta = dict(sorted(beta.items(), key=lambda x: x[1]))
+    # beta = dict(sorted(beta.items(), key=lambda x: x[1]))
     # beta = dict(list(beta.items())[:math.ceil(len(beta)*p)])
     beta = {k:v for k,v in beta.items() if v<=cut}
 
@@ -185,7 +190,7 @@ def markovitz(data):
     # clean = data.set_index('date')
     # table = clean.pivot(columns='ticker')
     ####################################################################################################################################################################################
-
+    
     selected = list(data.keys())
     table = pd.DataFrame(None)
     for ticker in selected:
@@ -197,6 +202,8 @@ def markovitz(data):
             table = t.copy()
         else:
             table = t.join(table)
+
+    table.dropna(axis=1, inplace=True)
 
     # calculate daily and annual returns of the stocks
     returns_daily = table.pct_change()
@@ -213,7 +220,7 @@ def markovitz(data):
     stock_weights = []
 
     # set the number of combinations for imaginary portfolios
-    num_assets = len(selected)
+    num_assets = len(table.columns)
     num_portfolios = 50000
 
     #set random seed for reproduction's sake
@@ -237,14 +244,14 @@ def markovitz(data):
                 'Sharpe Ratio': sharpe_ratio}
 
     # extend original dictionary to accomodate each ticker and weight in the portfolio
-    for counter,symbol in enumerate(selected):
-        portfolio[symbol+' Weight'] = [Weight[counter] for Weight in stock_weights]
+    for counter,symbol in enumerate(table.columns):
+        portfolio[symbol] = [Weight[counter] for Weight in stock_weights]
 
     # make a nice dataframe of the extended dictionary
     df = pd.DataFrame(portfolio)
 
     # get better labels for desired arrangement of columns
-    column_order = ['Returns', 'Volatility', 'Sharpe Ratio'] + [stock+' Weight' for stock in selected]
+    column_order = ['Returns', 'Volatility', 'Sharpe Ratio'] + [stock for stock in table.columns]
 
     # reorder dataframe columns
     df = df[column_order]
@@ -265,7 +272,7 @@ def markovitz(data):
     plt.xlabel('Volatility (Std. Deviation)')
     plt.ylabel('Expected Returns')
     plt.title('Efficient Frontier')
-    plt.show()
+    # plt.show()
     plt.savefig('foo.png')
 
     print(min_variance_port.T)
@@ -282,37 +289,93 @@ def pnl():
     pass
 
 
+def run_strategy():
+    # 0. full assets data from api:
+    t = tickers_list(market='BTC') # (!) ignorado pra rodar mais rápido com dados salvos
+    # t1 = t.copy()
+    # base_asset = 'BTCUSDT'
+    # t.append(base_asset)
 
-# 0. full assets data from api:
-t = tickers_list()
-t1 = t.copy()
-t.append('BTCBUSD')
+    d = candlestick(t)
+    now = pd.Timestamp.utcnow().strftime("%Y-%m-%d, %H")
+    d = {k:v for k,v in d.items() if (pd.to_datetime(v['open_datetime'][-1:], unit='ms').dt.strftime("%Y-%m-%d, %H") == now).any()}
+    # d1 = d[base_asset]
+    # d2 = {k:v for k,v in d.items() if k in t1}
+    # with open('d.pickle', 'rb') as handle: # (!) usado pra rodar mais rápido com dados salvos
+    #     d = pickle.load(handle)
 
-d = candlestick(t)
-d1 = d['BTCBUSD']
-d2 = {k:v for k,v in d.items() if k in t1}
+    # 1. run regressions and save clean_results:
+    test_momentum(d) # (!) ignorar pra rodar mais rápido com dados salvos
 
-# 1. run regressions and save clean_results:
-test_momentum(d2)
+    # 1.1. import clean_results (logistics regression's precision greater than 0.7):
+    clean_results = pd.read_csv('/home/carlos/Documents/Results/clean_results.csv')
 
-# 1.1. import clean_results (logistics regression's precision greater than 0.7):
-clean_results = pd.read_csv('/home/carlos/Documents/Results/clean_results.csv')
+    # 1.2. create new dict from d filtering assets from clean_results:
+    clean_data = {k:v for k,v in d.items() if (clean_results['Asset'] == k).any()}
 
-# 1.2. create new dict from d filtering assets from clean_results:
-clean_data = {k:v for k,v in d.items() if (clean_results['Asset'] == k).any()}
+    # 2. build portfolio:
+    # 2.1. calculate and filter most relevant imi's:
+    a = momentum_quantity(clean_data)
 
-# 2. build portfolio:
-# 2.1. calculate and filter most relevant imi's:
-a = momentum_quantity(clean_data)
+    # 2.2. filter assets by liquidity:
+    b = liquidity(a)
 
-# 2.2. filter assets by liquidity:
-b = liquidity(a)
+    # 2.3. filter betas:
+    # c = beta(data=b, market=d1, base_asset=base_asset)
 
-# 2.3. filter betas:
-c = beta(data=b, market=d1)
+    # 2.4. filter momentum quality:
+    # d = momentum_quality(c)
 
-# 2.4. filter momentum quality: (being ignored for now)
-# d = momentum_quality(c)
+    # 2.5. alocate portfolio proportions with Markovitz:
+    e, f = markovitz(b)
 
-# 2.5. alocate portfolio proportions with Markovitz:
-e, f = markovitz(c)
+    f = f[f.columns[3:]]
+
+    return f
+
+
+
+portfolio_n=1
+test_results = {}
+sub_results = {}
+price_bop = {}
+price_eop = {}
+proportion = {}
+
+# save dict with: real time / asset last close time / price of each asset / number of portfolio / proportion of each asset + asset (f)
+while portfolio_n <= 24:
+    # price = order_book['YOYOBTC']['bids'][1][1]
+    start_time = pd.Timestamp.utcnow()
+
+    portfolio = run_strategy()
+    for c in portfolio.columns:
+        proportion[c] = portfolio[c][portfolio.index[0]]
+    
+    asks = order_book(proportion.keys())
+    for k in asks.keys():
+        price_bop[k] = asks[k]['asks'][1][1]
+
+    buy_time = pd.Timestamp.utcnow()
+
+    time.sleep(3600)
+
+    bids = order_book(proportion.keys())
+    for k in bids.keys():
+        price_bop[k] = bids[k]['bids'][1][1]
+
+    sell_time = pd.Timestamp.utcnow()
+
+    sub_results['start_time'] = start_time
+    sub_results['buy_time'] = buy_time
+    sub_results['sell_time'] = sell_time
+    sub_results['price_bop'] = price_bop
+    sub_results['price_eop'] = price_eop
+    sub_results['proportion'] = proportion
+
+    test_results[portfolio_n] = sub_results
+    print(test_results)
+
+    portfolio_n+=1
+
+    with open('test_results.pickle', 'wb') as handle:
+        pickle.dump(test_results, handle, protocol=pickle.HIGHEST_PROTOCOL)

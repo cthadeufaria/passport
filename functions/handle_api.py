@@ -1,11 +1,7 @@
 import pandas as pd
-import plotly.graph_objects as go
 import requests, time, hmac, hashlib
-import pprint # used for debugging
 from urllib.parse import urlencode
 from initialize import initialize
-import matplotlib.pyplot as plt
-from statsmodels.graphics.tsaplots import plot_acf, plot_pacf
 
 endpoints = initialize('prod')[0]
 auth_dict = initialize('prod')[1]
@@ -16,6 +12,14 @@ def binance_data(): # used for debugging
     r2 = requests.get(endpoints['order_book']+'?'+'symbol=BNBBTC&limit=100', auth=(auth_dict['key'], auth_dict['skey']))
     r3 = requests.get(endpoints['avg_price']+'?'+'symbol=BNBBTC', auth=(auth_dict['key'], auth_dict['skey']))
     r7 = requests.get(endpoints['best_price']+'?'+'symbol=BNBBTC', auth=(auth_dict['key'], auth_dict['skey']))
+
+
+def order_book(tickers):
+    order_book = {}
+    for t in tickers:
+        r = requests.get(endpoints['order_book']+'?'+'symbol='+str(t)+'&limit=100', auth=(auth_dict['key'], auth_dict['skey']))
+        order_book[t] = r.json()
+    return order_book
 
 
 def ping():
@@ -36,7 +40,11 @@ def tickers_list(market='BTC'):
     # get all tickers list:
     tickers = []
     for i in range(0, len(r1.json()['symbols'])):
-        if r1.json()['symbols'][i]['symbol'][-3:] == market:
+        if r1.json()['symbols'][i]['symbol'][-4:] == market:
+            tickers.append(r1.json()['symbols'][i]['symbol'])
+        elif r1.json()['symbols'][i]['symbol'][-3:] == market:
+            tickers.append(r1.json()['symbols'][i]['symbol'])
+        elif market == 'ALL':
             tickers.append(r1.json()['symbols'][i]['symbol'])
     print(tickers)
     # print('status_code=' + str(r1.status_code) + ';' + str(r1.headers['content-type']))
@@ -127,12 +135,35 @@ def account_snapshot(apikey=auth_dict['key']):
     return data.json()
 
 
-def order(symbol, apikey=auth_dict['key']):
+def test_order(symbol, side, type, quantity, apikey=auth_dict['key']):
     servertimeint = get_timestamp()[0]
     endpoint_params = {
             "symbol" : symbol,
-            "side" : "BUY",
-            "type" : "SPOT",
+            "side" : side,
+            "type" : type,
+            "quantity" : quantity,
+            "timestamp" : servertimeint,
+        }
+    hashedsig_dict = sha256_signature(endpoint_params)
+    endpoint_params.update(hashedsig_dict)
+    data = requests.get(endpoints['test_order'],
+        params = endpoint_params,
+        headers = {
+            "X-MBX-APIKEY" : apikey,
+        }
+    )
+    return data.json()
+
+
+def order(symbol, side, type, timeInForce, quantity, price, apikey=auth_dict['key']):
+    servertimeint = get_timestamp()[0]
+    endpoint_params = {
+            "symbol" : symbol,
+            "side" : side,
+            "type" : type,
+            "timeInForce" : timeInForce,
+            "quantity" : quantity,
+            "price" : price,
             "timestamp" : servertimeint,
         }
     hashedsig_dict = sha256_signature(endpoint_params)
@@ -166,3 +197,9 @@ def prices():
         Pbuy[i['symbol']] = i['askPrice']
         Psell[i['symbol']] = i['bidPrice']
     return Pbuy, Psell
+
+
+
+# snap = account_info()
+# print(snap)
+# order_data = order(symbol='BNBBTC', side='SELL', type='LIMIT', timeInForce='GTC', quantity=0.01, price=0.008244)

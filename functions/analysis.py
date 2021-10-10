@@ -46,44 +46,24 @@ def test_momentum(data={'BNBBTC' : pd.read_csv('/home/carlos/Documents/BTC_data/
                             pass
                         else:
                             series['return_m'][i] = (series['close'][i+m-1]-series['open'][i])/series['open'][i]
-                # series.to_csv('/home/carlos/Documents/BTC_data/BNBBTC_2.csv')
 
-                corr, _ = pearsonr(series['imi'][n:len(series)-m], series['return_m'][n:len(series)-m])
-                print('Pearsonr correlation: %.3f' % corr)
-                corr2, _ = spearmanr(series['imi'][n:len(series)-m], series['return_m'][n:len(series)-m])
-                print('Spearmanr correlation: %.3f' % corr2)
+                # corr, _ = pearsonr(series['imi'][n:len(series)-m], series['return_m'][n:len(series)-m])
+                corr = 0
+                # corr2, _ = spearmanr(series['imi'][n:len(series)-m], series['return_m'][n:len(series)-m])
+                corr2 = 0
 
-                # plt.plot(series['open_datetime'][n:len(series)-m], series['return_m'][n:len(series)-m], 'r')
-                # plt.plot(series['open_datetime'][n:len(series)-m], series['imi'][n:len(series)-m], 'b')
-                # plt.show()
-
-                series_b = series[((series['imi']<=0.3) | (series['imi']>=0.7)) & (series['gains']!=0)].copy()
-                # series_b = series.copy()
-                if len(series_b) == 0:
-                    corr_b = 0
-                    corr2_b = 0
-                else:
-                    corr_b, _ = pearsonr(series_b['imi'], series_b['return_m'])
-                    print('Pearsonr correlation (0.7 <= x <= 0.3): %.3f' % corr_b)
-                    corr2_b, _ = spearmanr(series_b['imi'], series_b['return_m'])
-                    print('Spearmanr correlation (0.7 <= x <= 0.3): %.3f' % corr2_b)
-
+                # series_b = series[((series['imi']<=0.3) | (series['imi']>=0.7)) & (series['gains']!=0)].copy()
+                # if len(series_b) == 0:
+                #     corr_b = 0
+                #     corr2_b = 0
+                # else:
+                #     corr_b, _ = pearsonr(series_b['imi'], series_b['return_m'])
+                #     corr2_b, _ = spearmanr(series_b['imi'], series_b['return_m'])
+                
+                corr_b = 0
+                corr2_b = 0
+                
                 # # Logistics Regression
-                # series['return_m'] = np.where(series['return_m']>=0, 1, 0)
-                # X_train, X_test, y_train, y_test = train_test_split(series['imi'], series['return_m'], test_size=0.25, random_state=0)
-                # logreg = LogisticRegression()
-                # logreg.fit(np.array(X_train).reshape(-1, 1),y_train)
-                # y_pred=logreg.predict(np.array(X_test).reshape(-1, 1))
-                # cnf_matrix = metrics.confusion_matrix(y_test, y_pred)
-                # accuracy = metrics.accuracy_score(y_test, y_pred)
-                # precision = metrics.precision_score(y_test, y_pred)
-                # recall = metrics.recall_score(y_test, y_pred)
-                # print('cnf_matrix')
-                # print(cnf_matrix)
-                # print("Accuracy:", accuracy)
-                # print("Precision:", precision)
-                # print("Recall:", recall)
-
                 cnf_matrix, accuracy, precision, recall = logistic_regression(series)
                 imi = series['imi'].iloc[-1]
 

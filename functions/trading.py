@@ -39,6 +39,3 @@ def trading(Vp, Ke=0.5, gain=1.1, market='BTC', k=300):
         Vref = Vp*gain
         Mv = controller.send([k, Vp, Vref])
         time.sleep(k)
-
-
-trading()

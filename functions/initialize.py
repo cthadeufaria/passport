@@ -3,11 +3,6 @@ import os
 
 def initialize(api_type = 'prod'):
 
-    if api_type == 'test':
-        main_endpoint = 'https://testnet.binance.vision'
-    elif api_type == 'prod':
-        main_endpoint = 'https://api1.binance.com'
-
     # /api/ endpoints
     endpoints = {
         'test' : '/api/v3/ping',
@@ -25,22 +20,24 @@ def initialize(api_type = 'prod'):
         'test_order' : '/api/v3/order/test',
     }
 
-    # complete endpoints strings
-    for i in endpoints:
-        if endpoints[i].find(main_endpoint) == -1:
-            endpoints[i] = main_endpoint + endpoints[i]
-
-    # choose auth for each main endpoint
-    if main_endpoint == 'https://api1.binance.com':
-        auth_dict = {
-            'key' : os.environ.get('SPOT_KEY'),
-            'skey' : os.environ.get('SPOT_SKEY'),
-        }
-    elif main_endpoint == 'https://testnet.binance.vision':
+    if api_type == 'test':
+        main_endpoint = 'https://testnet.binance.vision'
         auth_dict = {
             'key' : os.environ.get('TEST_KEY'),
             'skey' : os.environ.get('TEST_SKEY'),
         }
+    elif api_type == 'prod':
+        main_endpoint = 'https://api1.binance.com'
+        # choose auth for each main endpoint
+        auth_dict = {
+            'key' : os.environ.get('SPOT_KEY'),
+            'skey' : os.environ.get('SPOT_SKEY'),
+        }
+
+    # complete endpoints strings
+    for i in endpoints:
+        if endpoints[i].find(main_endpoint) == -1:
+            endpoints[i] = main_endpoint + endpoints[i]
         
     print(endpoints)
 
