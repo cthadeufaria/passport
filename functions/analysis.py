@@ -7,6 +7,7 @@ from scipy.stats import pearsonr
 # from scipy.stats.stats import moment
 from handle_api import candlestick, tickers_list
 from log_reg import logistic_regression
+import pickle
 
 
 def test_momentum(data={'BNBBTC' : pd.read_csv('/home/carlos/Documents/BTC_data/BNBBTC.csv')}, test=1):
@@ -112,5 +113,11 @@ def results_analysis():
     results.to_csv(final_path + '/' + today + ' - momentum_analysis.csv')
 
 
-# d = candlestick(tickers_list())
-# test_momentum(data=d)
+def results_analysis_2():
+    with open('test_results.pickle', 'rb') as handle:
+        data = pickle.load(handle)
+
+    df = pd.DataFrame()
+
+
+results_analysis_2()

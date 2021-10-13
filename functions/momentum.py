@@ -289,9 +289,9 @@ def pnl():
     pass
 
 
-def run_strategy():
+def run_strategy(market):
     # 0. full assets data from api:
-    t = tickers_list(market='BTC') # (!) ignorado pra rodar mais rápido com dados salvos
+    t = tickers_list(market) # (!) ignorado pra rodar mais rápido com dados salvos
     # t1 = t.copy()
     # base_asset = 'BTCUSDT'
     # t.append(base_asset)
@@ -347,7 +347,7 @@ while portfolio_n <= 24:
     # price = order_book['YOYOBTC']['bids'][1][1]
     start_time = pd.Timestamp.utcnow()
 
-    portfolio = run_strategy()
+    portfolio = run_strategy(market='BTC')
     for c in portfolio.columns:
         proportion[c] = portfolio[c][portfolio.index[0]]
     
@@ -357,22 +357,24 @@ while portfolio_n <= 24:
 
     buy_time = pd.Timestamp.utcnow()
 
-    time.sleep(3600)
+    time_spam = 3600 - (buy_time.timestamp()-start_time.timestamp())
+
+    time.sleep(time_spam)
 
     bids = order_book(proportion.keys())
     for k in bids.keys():
-        price_bop[k] = bids[k]['bids'][1][1]
+        price_eop[k] = bids[k]['bids'][1][1]
 
     sell_time = pd.Timestamp.utcnow()
 
     sub_results['start_time'] = start_time
     sub_results['buy_time'] = buy_time
     sub_results['sell_time'] = sell_time
-    sub_results['price_bop'] = price_bop
-    sub_results['price_eop'] = price_eop
-    sub_results['proportion'] = proportion
+    sub_results['price_bop'] = price_bop.copy()
+    sub_results['price_eop'] = price_eop.copy()
+    sub_results['proportion'] = proportion.copy()
 
-    test_results[portfolio_n] = sub_results
+    test_results[portfolio_n] = sub_results.copy()
     print(test_results)
 
     portfolio_n+=1
