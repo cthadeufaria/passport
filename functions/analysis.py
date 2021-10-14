@@ -117,7 +117,33 @@ def results_analysis_2():
     with open('test_results.pickle', 'rb') as handle:
         data = pickle.load(handle)
 
-    df = pd.DataFrame()
+    results = pd.DataFrame(columns=['portfolio_n', 'asset', 'price_bop', 'price_eop', 'proportion', 'returns'])
+    portfolio_n = []
+    asset = []
+    price_bop = []
+    price_eop = []
+    proportion = []
+    returns = []
+
+    for i in data.keys():
+
+        n=0
+        while n < len(data[i]['price_bop']):
+            portfolio_n.append(i)
+            n+=1
+
+        for j in data[i]['price_bop'].keys():
+            asset.append(j)
+            price_bop.append(data[i]['price_bop'][j])
+            price_eop.append(data[i]['price_eop'][j])
+            proportion.append(data[i]['proportion'][j])
+
+    results['portfolio_n'] = portfolio_n.copy()
+    results['asset'] = asset.copy()
+    results['price_bop'] = price_bop.copy()
+    results['price_eop'] = price_eop.copy()
+    results['proportion'] = proportion.copy()
+
 
 
 results_analysis_2()

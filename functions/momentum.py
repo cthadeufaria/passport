@@ -353,7 +353,7 @@ while portfolio_n <= 24:
     
     asks = order_book(proportion.keys())
     for k in asks.keys():
-        price_bop[k] = asks[k]['asks'][1][1]
+        price_bop[k] = asks[k]['asks'][0][0]
 
     buy_time = pd.Timestamp.utcnow()
 
@@ -363,7 +363,7 @@ while portfolio_n <= 24:
 
     bids = order_book(proportion.keys())
     for k in bids.keys():
-        price_eop[k] = bids[k]['bids'][1][1]
+        price_eop[k] = bids[k]['bids'][0][0]
 
     sell_time = pd.Timestamp.utcnow()
 
