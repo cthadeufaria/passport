@@ -144,6 +144,8 @@ def results_analysis_2():
     results['price_eop'] = price_eop.copy()
     results['proportion'] = proportion.copy()
 
+    results.to_csv('results.csv')
+
 
 
 results_analysis_2()

@@ -34,20 +34,21 @@ def get_timestamp():
     return st, t
 
 
-def tickers_list(market='BTC'):
+def tickers_list(market=None):
     r1 = requests.get(endpoints['exchange_info'], auth=(auth_dict['key'], auth_dict['skey']))
 
-    # get all tickers list:
+    # get all tickers list where dict['symbols']['status']=='TRADING':
     tickers = []
     for i in range(0, len(r1.json()['symbols'])):
-        if r1.json()['symbols'][i]['symbol'][-4:] == market:
-            tickers.append(r1.json()['symbols'][i]['symbol'])
-        elif r1.json()['symbols'][i]['symbol'][-3:] == market:
-            tickers.append(r1.json()['symbols'][i]['symbol'])
-        elif market == 'ALL':
-            tickers.append(r1.json()['symbols'][i]['symbol'])
+        if r1.json()['symbols'][1]['status'] == 'TRADING':
+            if r1.json()['symbols'][i]['quoteAsset'] == market:
+                tickers.append(r1.json()['symbols'][i]['symbol'])
+            elif market == None:
+                tickers.append(r1.json()['symbols'][i]['symbol'])
+
     print(tickers)
     # print('status_code=' + str(r1.status_code) + ';' + str(r1.headers['content-type']))
+    
     return tickers
 
 
@@ -76,6 +77,10 @@ def price_hist(tickers=['BNBBTC'], apikey=auth_dict['key']):
 
 
 def candlestick(tickers, limit=1000, interval='1h'):
+#     Kline/Candlestick chart intervals:
+# m -> minutes; h -> hours; d -> days; w -> weeks; M -> months
+#     1m / 3m / 5m / 15m / 30m / 1h / 2h / 4h / 6h / 8h / 12h / 1d / 3d / 1w / 1M
+
     data = {}
     if type(tickers) != list:
         tickers=[tickers]

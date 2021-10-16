@@ -26,11 +26,29 @@ import pickle
     # how to estimate volatility? GARCH?
     # how to estimate return? EWMA?
 
+# Portfolio 1.1 - Markovitz Long Term Momentum
+    # Identify universe (sample_space)
+    # Remove outliers (beta) (momentum_outliers)
+    # Momentum screen
+    # Momentum quality
+    # Invest with conviction (?)
 
 # Portfolio 2 - Highest Daily Gainers Chasing:
 # Test highest gainers on last 24h for momentum predictability
 
 ########################################################################################################
+
+def sample_space(tickers):
+    # Filter largest assets
+    # Exclude assets with less than 12 months of return data
+    # Eliminate less liquid assets based on average daily volume
+    pass
+
+
+def momentum_outliers():
+    # Remove assets with bad 6 and 9-month momentum measure
+    pass
+
 
 def momentum_quantity(data, n=20, key='last', cut=0.5):
     # key = 'last' => calculate last imi's / key = 'all' => calculate all imi's
@@ -95,6 +113,7 @@ def liquidity(data, p=0.7, cut=10000.0):
 
         
 def beta(data, market, base_asset, p=0.7, cut=0.5):
+    # Eliminate 10% of highest betas (What's the cryptocurrencies' market index?)
     # market = candlestick(base_asset)[base_asset]
     market_delta = pd.DataFrame(
         data=(pd.to_numeric(market['close'])-pd.to_numeric(market['open']))/pd.to_numeric(market['open']),
@@ -289,9 +308,9 @@ def pnl():
     pass
 
 
-def run_strategy(market):
+def run_strategy(market='BTC'): # daily strategy. tests gone bad. do not use!
     # 0. full assets data from api:
-    t = tickers_list(market) # (!) ignorado pra rodar mais rápido com dados salvos
+    t = tickers_list(market) # (!) ignorado para rodar mais rápido com dados salvos
     # t1 = t.copy()
     # base_asset = 'BTCUSDT'
     # t.append(base_asset)
@@ -331,53 +350,50 @@ def run_strategy(market):
 
     f = f[f.columns[3:]]
 
-    return f
+    portfolio_n=1
+    test_results = {}
+    sub_results = {}
+    price_bop = {}
+    price_eop = {}
+    proportion = {}
 
+    # save dict with: real time / asset last close time / price of each asset / number of portfolio / proportion of each asset + asset (f)
+    while portfolio_n <= 24:
+        # price = order_book['YOYOBTC']['bids'][1][1]
+        start_time = pd.Timestamp.utcnow()
 
+        portfolio = f
+        for c in portfolio.columns:
+            proportion[c] = portfolio[c][portfolio.index[0]]
+        
+        asks = order_book(proportion.keys())
+        for k in asks.keys():
+            price_bop[k] = asks[k]['asks'][0][0]
 
-portfolio_n=1
-test_results = {}
-sub_results = {}
-price_bop = {}
-price_eop = {}
-proportion = {}
+        buy_time = pd.Timestamp.utcnow()
 
-# save dict with: real time / asset last close time / price of each asset / number of portfolio / proportion of each asset + asset (f)
-while portfolio_n <= 24:
-    # price = order_book['YOYOBTC']['bids'][1][1]
-    start_time = pd.Timestamp.utcnow()
+        time_spam = 3600 - (buy_time.timestamp()-start_time.timestamp())
 
-    portfolio = run_strategy(market='BTC')
-    for c in portfolio.columns:
-        proportion[c] = portfolio[c][portfolio.index[0]]
-    
-    asks = order_book(proportion.keys())
-    for k in asks.keys():
-        price_bop[k] = asks[k]['asks'][0][0]
+        time.sleep(time_spam)
 
-    buy_time = pd.Timestamp.utcnow()
+        bids = order_book(proportion.keys())
+        for k in bids.keys():
+            price_eop[k] = bids[k]['bids'][0][0]
 
-    time_spam = 3600 - (buy_time.timestamp()-start_time.timestamp())
+        sell_time = pd.Timestamp.utcnow()
 
-    time.sleep(time_spam)
+        sub_results['start_time'] = start_time
+        sub_results['buy_time'] = buy_time
+        sub_results['sell_time'] = sell_time
+        sub_results['price_bop'] = price_bop.copy()
+        sub_results['price_eop'] = price_eop.copy()
+        sub_results['proportion'] = proportion.copy()
 
-    bids = order_book(proportion.keys())
-    for k in bids.keys():
-        price_eop[k] = bids[k]['bids'][0][0]
+        test_results[portfolio_n] = sub_results.copy()
+        print(test_results)
 
-    sell_time = pd.Timestamp.utcnow()
+        portfolio_n+=1
 
-    sub_results['start_time'] = start_time
-    sub_results['buy_time'] = buy_time
-    sub_results['sell_time'] = sell_time
-    sub_results['price_bop'] = price_bop.copy()
-    sub_results['price_eop'] = price_eop.copy()
-    sub_results['proportion'] = proportion.copy()
+        with open('test_results.pickle', 'wb') as handle:
+            pickle.dump(test_results, handle, protocol=pickle.HIGHEST_PROTOCOL)
 
-    test_results[portfolio_n] = sub_results.copy()
-    print(test_results)
-
-    portfolio_n+=1
-
-    with open('test_results.pickle', 'wb') as handle:
-        pickle.dump(test_results, handle, protocol=pickle.HIGHEST_PROTOCOL)
