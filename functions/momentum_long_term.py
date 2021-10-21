@@ -16,34 +16,27 @@ from sklearn.linear_model import LinearRegression
 import numpy as np
 
 
-def sample_space(tickers, MinimumValue=0.5, MinimumVolume=10000):
+def sample_space(OneYearData, MinimumValue=0.5, MinimumVolume=10000):
     # MinimumValue = Minimum value of asset in USDT / MinimumVolume = Minimum average volume of asset in last 30 days
     # Exclude assets with less than 12 months of return data (ok)
     # Filter largest assets (ok)
     # Eliminate less liquid assets based on average daily volume (ok)
 
-    OneYearData = candlestick(tickers=tickers, limit=12, interval='1M')
-    EnoughReturnDataList = [k for k,v in OneYearData.items() if len(v) == 12]
-    EnoughReturnData = {k:v for k,v in OneYearData.items() if (k == pd.Series(EnoughReturnDataList)).any()}
+    EnoughReturnData = {k:v for k,v in OneYearData.items() if len(v) == 365}
     print('EnoughReturnData length = ' + str(len(EnoughReturnData)))
 
-    MonthlyDailyData = candlestick(tickers=list(EnoughReturnData.keys()), limit=30, interval='1d')
-    LargestAssets = {k:v for k,v in MonthlyDailyData.items() if sum(pd.to_numeric(v['high']))/len(pd.to_numeric(v['high'])) >= MinimumValue}
+    LargestAssets = {k:v for k,v in EnoughReturnData.items() if sum(pd.to_numeric(v['high'][-30:]))/30 >= MinimumValue}
     print('LargestAssets length = ' + str(len(LargestAssets)))
 
-    LiquidAssets = {k:v for k,v in LargestAssets.items() if sum(pd.to_numeric(v['volume']))/len(pd.to_numeric(v['volume'])) >= MinimumVolume}
+    LiquidAssets = {k:v for k,v in LargestAssets.items() if sum(pd.to_numeric(v['volume'][-30:]))/30 >= MinimumVolume}
     print('LiquidAssets length = ' + str(len(LiquidAssets)))
 
     return LiquidAssets
 
 
-def beta(data, market, base_asset, p=0.7, cut=0.5):
-    # Eliminate 10% of highest betas (What's the cryptocurrencies' market index?)
-    # market = candlestick(base_asset)[base_asset]
-    market_delta = pd.DataFrame(
-        data=(pd.to_numeric(market['close'])-pd.to_numeric(market['open']))/pd.to_numeric(market['open']),
-        columns=[base_asset]
-    ).set_index(market['open_datetime'])
+def beta(data, base_asset='BTCUSDT', p=0.3):
+    # Eliminate assets with beta module greater than 'p' (ok)
+
     df = pd.DataFrame()
     for s in data.keys():
         if len(df) == 0:
@@ -60,9 +53,7 @@ def beta(data, market, base_asset, p=0.7, cut=0.5):
                 how='left'
             )
     df.dropna(axis=1, inplace=True)
-    df = df.join(market_delta, how ='left')
-    df.dropna(inplace=True)
-    
+
     beta = {}
     for c in df.columns:
         # Create arrays for x and y variables in the regression model
@@ -73,23 +64,22 @@ def beta(data, market, base_asset, p=0.7, cut=0.5):
         beta[c] = (model.coef_[0])
         print(str(c)+'s beta = '+str(model.coef_[0]))
 
-    # beta = dict(sorted(beta.items(), key=lambda x: x[1]))
-    # beta = dict(list(beta.items())[:math.ceil(len(beta)*p)])
-    beta = {k:v for k,v in beta.items() if v<=cut}
+    beta = {k:v for k,v in beta.items() if abs(v)<=p}
 
-    series = {}
-    for (key, value) in data.items():
-        if key in beta.keys():
-            series[key] = value
-    print('beta series: ' + str(len(series)) + ' rows')
-    return series
+    LowBetaAssets = {k:v for k,v in data.items() if (k == pd.Series(beta.keys())).any()}
+    LowBetaAssets['BTCUSDT'] = data['BTCUSDT']
+    LowBetaAssets['ETHUSDT'] = data['ETHUSDT']
+    print('LowBetaAssets length: ' + str(len(LowBetaAssets)) + ' rows')
+    
+    return LowBetaAssets
 
 
-def momentum_outliers():
+def momentum_outliers(data):
     # Remove assets with bad 6 and 9-month momentum measure
+
     pass
 
-
+        
 def momentum_quantity(data, n=20, key='last', cut=0.5):
     # key = 'last' => calculate last imi's / key = 'all' => calculate all imi's
     # n = imi period
@@ -278,14 +268,18 @@ def markovitz(data):
 
 
 def run_strategy():
-    # Get tickers from specified market:
+    # Get tickers + data from specific market:
     t = tickers_list(market='USDT')
+    data = candlestick(tickers=t, limit=365, interval='1d')
 
     # Screen nº 1:
-    a = sample_space(tickers=t)
+    a = sample_space(data)
 
     # Screen nº 2:
     b = beta(a)
+
+    # Screen nº 3:
+    c = momentum_outliers(b)
 
 
 if __name__ == "__main__":
