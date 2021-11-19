@@ -1,6 +1,6 @@
 # Portfolio 1 - Intermediate-Term Momentum
     # Identify universe (sample_space) (ok)
-    # Remove outliers (beta) (momentum_outliers)
+    # Remove outliers (beta) (ok) (momentum_outliers) (ok)
     # Momentum screen (momentum_quantity)
     # Momentum quality (momentum_quality)
     # Invest with conviction
@@ -9,11 +9,12 @@
 
 ########################################################################################################
 
-from handle_api import tickers_list, candlestick
+from handle_api import tickers_list, candlestick, prices, trades, balances
 import pandas as pd
 import matplotlib.pyplot as plt
 from sklearn.linear_model import LinearRegression
 import numpy as np
+import time, datetime
 
 
 def sample_space(OneYearData, MinimumValue=0.5, MinimumVolume=10000):
@@ -35,7 +36,7 @@ def sample_space(OneYearData, MinimumValue=0.5, MinimumVolume=10000):
 
 
 def beta(data, base_asset='BTCUSDT', p=0.3):
-    # Eliminate assets with beta module greater than 'p' (ok)
+    # Eliminate assets with abs(beta) greater than 'p' (ok)
 
     df = pd.DataFrame()
     for s in data.keys():
@@ -67,64 +68,60 @@ def beta(data, base_asset='BTCUSDT', p=0.3):
     beta = {k:v for k,v in beta.items() if abs(v)<=p}
 
     LowBetaAssets = {k:v for k,v in data.items() if (k == pd.Series(beta.keys())).any()}
-    LowBetaAssets['BTCUSDT'] = data['BTCUSDT']
-    LowBetaAssets['ETHUSDT'] = data['ETHUSDT']
+    # LowBetaAssets['BTCUSDT'] = data['BTCUSDT']
+    # LowBetaAssets['ETHUSDT'] = data['ETHUSDT']
     print('LowBetaAssets length: ' + str(len(LowBetaAssets)) + ' rows')
     
     return LowBetaAssets
 
 
-def momentum_outliers(data):
-    # Remove assets with bad 6 and 9-month momentum measure
+def calculate_momentum(data, periods = [180, 270, 360]):
+    # Calculate momentum for given time periods
+    # periods = periods' list to calculate momentum
+    MomentumData = {}
+    info = {}
+    for k in data.keys():
+        for i in periods:
+            length = len(data[k]['close'])
+            end = length - 7
+            beginning = max(end - i, 0)
+            info[str(i)] = (pd.to_numeric(data[k]['close'][end]) - pd.to_numeric(data[k]['open'][beginning])) / pd.to_numeric(data[k]['open'][beginning])
+        MomentumData[k] = info.copy()
+        for i in periods:
+            info.pop(str(i))
+    
+    return MomentumData
 
-    pass
 
-        
-def momentum_quantity(data, n=20, key='last', cut=0.5):
-    # key = 'last' => calculate last imi's / key = 'all' => calculate all imi's
-    # n = imi period
-    # m = investment period
-    momentum = {}
-    momentum_filter = {}
-    for d in data.keys():
-        series = data[d].copy()
-        series['close'] = pd.to_numeric(series['close'])
-        series['open'] = pd.to_numeric(series['open'])
-        series['return'] = series['close']-series['open']
-        if key == 'all':
-            series['gains'] = 0.0
-            series['losses'] = 0.0
-            series['imi'] = 0.0
-            series['return_m'] = 0.0
-            for i in series.index:
-                if i < n:
-                    pass
-                else:
-                    series['gains'][i] = series['return'][i-n:i][series['return']>=0].sum()
-                    series['losses'][i] = series['return'][i-n:i][series['return']<0].sum()
-                    if series['gains'][i]-series['losses'][i] == 0:
-                        series['imi'][i] = 0.5
-                    else:
-                        series['imi'][i] = series['gains'][i]/(series['gains'][i]-series['losses'][i])
-                    # if i+m-1 >= len(series):
-                    #     pass
-                    # else:
-                    #     series['return_m'][i] = (series['close'][i+m-1]-series['open'][i])/series['open'][i]
-        elif key == 'last':
-            i = series.index.max()
-            gains = series['return'][i-n:i][series['return']>=0].sum()
-            losses = series['return'][i-n:i][series['return']<0].sum()
-            if gains-losses == 0:
-                pass
-            elif gains/(gains-losses)<=cut:
-                momentum_filter[d] = gains/(gains-losses)
-            else:
-                pass
-        momentum[d] = series
-    if key == 'last':
-        momentum = {k:v for k,v in momentum.items() if (pd.Series(momentum_filter.keys()) == k).any()}
-    print('quantity series: ' + str(len(momentum)) + ' rows')
-    return momentum
+def momentum_outliers(data, MomentumData, screen = 0.0, periods = [180, 270]):
+    # Remove assets with negative 6 and 9-month momentum measure from data
+    MomentumDataNoOutliers = {k:v for k,v in MomentumData.items() if v[str(periods[1])] >= screen and v[str(periods[0])] >= screen}
+    
+    OutliersRemoved = {k:v for k,v in data.items() if (k == pd.Series(MomentumDataNoOutliers.keys())).any()}
+
+    print('OutliersRemoved length = ' + str(len(OutliersRemoved)) + ' rows')
+
+    return OutliersRemoved, MomentumDataNoOutliers
+
+
+def momentum_quantity(data, MomentumDataNoOutliers):
+    # Select assets with higher 12-month momentum
+    # Create DataFrame for storing 12-month momentum data
+    dfMomentum = pd.DataFrame(data=None, columns=['asset', 'momentum'], index=range(0, len(MomentumDataNoOutliers)))
+    i = 0
+    for k in MomentumDataNoOutliers.keys():
+        dfMomentum['asset'][i] = k
+        dfMomentum['momentum'][i] = MomentumDataNoOutliers[k]['360']
+        i+=1
+    
+    # Filter positive 12-month momentum
+    dfMomentum = dfMomentum[dfMomentum['momentum']>1.0]
+
+    CleanData = {k:v for k,v in data.items() if (k == dfMomentum['asset']).any()}
+
+    print('CleanData length = ' + str(len(CleanData)) + ' rows')
+
+    return CleanData
 
 
 def momentum_quality(data, n=20, p=0.5, cut=0):
@@ -183,6 +180,7 @@ def markovitz(data):
         t = data[ticker][['open_datetime', 'close']]
         t.set_index('open_datetime', inplace=True)
         t.columns = [ticker]
+        t[ticker] = pd.to_numeric(t[ticker])
 
         if len(table) == 0:
             table = t.copy()
@@ -258,8 +256,8 @@ def markovitz(data):
     plt.xlabel('Volatility (Std. Deviation)')
     plt.ylabel('Expected Returns')
     plt.title('Efficient Frontier')
-    # plt.show()
-    plt.savefig('foo.png')
+    plt.show()
+    plt.savefig('plots/Markowitz Efficient Frontier.png')
 
     print(min_variance_port.T)
     print(sharpe_portfolio.T)
@@ -279,8 +277,85 @@ def run_strategy():
     b = beta(a)
 
     # Screen nº 3:
-    c = momentum_outliers(b)
+    c = calculate_momentum(b)
+    d, MomentumDataNoOutliers = momentum_outliers(b, c)
+
+    # Screen nº 4:
+    e = momentum_quantity(d, MomentumDataNoOutliers)
+
+    # Screen nº5:
+    f = momentum_quality(e)
+    
+    return f
 
 
+def pnl(portfolio_keys=['00']):
+    for key in portfolio_keys:
+        portfolio = pd.read_csv('portfolios/' + key + '.csv')
+
+        AllTickers = tickers_list()
+        # holding = list(balances().keys())
+        holding = list(portfolio['asset'])
+
+        tickers = []
+        for i in AllTickers:
+            for j in holding:
+                if i[0:len(j)] == j and (i[-3:] == 'BRL' or i[-3:] == 'BTC'):
+                    tickers.append(i)
+        
+        TradeHistory = trades(tickers)
+
+        pnl = {}
+        for s in TradeHistory:
+            price = []
+            qty = []
+            Time = []
+            for v in s:
+                if v['isBuyer'] == True:
+                    price.append(v['price'])
+                    qty.append(v['qty'])
+                    Time.append(v['time'])
+                    pnl[v['symbol']] = {'price': price, 'qty': qty, 'time': Time,}
+
+        while True:
+            Psell = prices()[1]
+
+            print(datetime.datetime.now())
+            print('\n')
+
+            for k in pnl.keys():
+                pnl[k]['sell'] = Psell[k]
+
+                # sum of quantities times current price
+                # sum(pd.to_numeric(pnl['LRCBTC']['qty']))*pd.to_numeric(Psell['LRCBTC'])
+                # sum of each buy price times each quantity
+                # sum(pd.to_numeric(pnl['LRCBTC']['price'])*pd.to_numeric(pnl['LRCBTC']['qty']))
+                pnl[k]['pnl_total'] = \
+                    sum(pd.to_numeric(pnl[k]['qty']))*pd.to_numeric(Psell[k]) - \
+                    sum(pd.to_numeric(pnl[k]['price'])*pd.to_numeric(pnl[k]['qty']))
+
+                pnl[k]['pnl_percent'] = \
+                    ((sum(pd.to_numeric(pnl[k]['qty']))*pd.to_numeric(Psell[k])/ \
+                    sum(pd.to_numeric(pnl[k]['price'])*pd.to_numeric(pnl[k]['qty']))) - 1) * 100
+
+                print(
+                    k + ': ' + str(round(pnl[k]['pnl_percent'], 2)) + '%'
+                )
+            
+            print('\n\n')
+
+            time.sleep(3)
+    
+
+# build_portfolio variables:
+#   [0]: build new portfolio
+#   [1]: calculate Markowitz for new portfolio
+build_portfolio = [0, 0]
 if __name__ == "__main__":
-    run_strategy()
+    
+    if build_portfolio[0] == 1:
+        f = run_strategy()
+        if build_portfolio[1] == 1:
+            g, h = markovitz(f)
+    
+    pnl()

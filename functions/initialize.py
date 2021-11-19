@@ -18,6 +18,7 @@ def initialize(api_type = 'prod'):
         'price_hist' : '/api/v3/historicalTrades',
         'order' : '/api/v3/order',
         'test_order' : '/api/v3/order/test',
+        'trades' : '/api/v3/myTrades',
     }
 
     if api_type == 'test':

@@ -140,6 +140,26 @@ def account_snapshot(apikey=auth_dict['key']):
     return data.json()
 
 
+def trades(symbols, apikey=auth_dict['key']):
+    FullData = []
+    for symbol in symbols:
+        servertimeint = get_timestamp()[0]
+        endpoint_params = {
+                "symbol" : symbol,
+                "timestamp" : servertimeint,
+            }
+        hashedsig_dict = sha256_signature(endpoint_params)
+        endpoint_params.update(hashedsig_dict)
+        data = requests.get(endpoints['trades'],
+            params = endpoint_params,
+            headers = {
+                "X-MBX-APIKEY" : apikey,
+            }
+        )
+        FullData.append(data.json())
+    return FullData
+
+
 def test_order(symbol, side, type, quantity, apikey=auth_dict['key']):
     servertimeint = get_timestamp()[0]
     endpoint_params = {
@@ -203,8 +223,4 @@ def prices():
         Psell[i['symbol']] = i['bidPrice']
     return Pbuy, Psell
 
-
-
-# snap = account_info()
-# print(snap)
-# order_data = order(symbol='BNBBTC', side='SELL', type='LIMIT', timeInForce='GTC', quantity=0.01, price=0.008244)
+    
