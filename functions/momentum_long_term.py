@@ -14,7 +14,7 @@ import pandas as pd
 import matplotlib.pyplot as plt
 from sklearn.linear_model import LinearRegression
 import numpy as np
-import time, datetime
+import time, datetime, pygsheets, json
 
 
 def sample_space(OneYearData, MinimumValue=0.5, MinimumVolume=10000):
@@ -289,7 +289,7 @@ def run_strategy():
     return f
 
 
-def pnl(portfolio_keys=['00']):
+def real_time_pnl(portfolio_keys=['00']):
     for key in portfolio_keys:
         portfolio = pd.read_csv('portfolios/' + key + '.csv')
 
@@ -319,13 +319,16 @@ def pnl(portfolio_keys=['00']):
 
         while True:
             Psell = prices()[1]
+            conversion = prices()[1]['BTCBRL']
 
-            print(datetime.datetime.now())
+            print('\n\n')
+            print(str(datetime.datetime.now()) + ' | Portfolio ' + str(key))
             print('\n')
 
-            for k in pnl.keys():
-                pnl[k]['sell'] = Psell[k]
+            CurrentSum = 0.0
+            BegginingSum = 0.0
 
+            for k in pnl.keys():
                 # sum of quantities times current price
                 # sum(pd.to_numeric(pnl['LRCBTC']['qty']))*pd.to_numeric(Psell['LRCBTC'])
                 # sum of each buy price times each quantity
@@ -341,16 +344,324 @@ def pnl(portfolio_keys=['00']):
                 print(
                     k + ': ' + str(round(pnl[k]['pnl_percent'], 2)) + '%'
                 )
+
+                if k[-3:] == 'BTC':
+                    t = pd.to_numeric(conversion)
+                else:
+                    t = 1.0
+                
+                CurrentSum += sum(pd.to_numeric(pnl[k]['qty']))*pd.to_numeric(Psell[k])*t
+                BegginingSum += sum(pd.to_numeric(pnl[k]['price'])*pd.to_numeric(pnl[k]['qty']))*t
             
-            print('\n\n')
+            print('\n')
+            print('PnL total (BRL): ' + str(CurrentSum - BegginingSum))
+            print('PnL percentage total: ' + str(((CurrentSum/BegginingSum) - 1) * 100))
 
             time.sleep(3)
     
+
+def portfolio_delta(portfolio_keys=['00'], limit=7, interval='1d'):
+    for key in portfolio_keys:
+        portfolio = pd.read_csv('portfolios/' + key + '.csv')
+
+        AllTickers = tickers_list()
+        holding = list(portfolio['asset'])
+
+        tickers = []
+        for i in AllTickers:
+            for j in holding:
+                if i[0:len(j)] == j and (i[-3:] == 'BRL' or i[-3:] == 'BTC'):
+                    tickers.append(i)
+        
+        TradeHistory = trades(tickers)
+
+        pnl = {}
+        for s in TradeHistory:
+            price = []
+            qty = []
+            Time = []
+            for v in s:
+                if v['isBuyer'] == True:
+                    price.append(v['price'])
+                    qty.append(v['qty'])
+                    Time.append(v['time'])
+                    pnl[v['symbol']] = {'price': price, 'qty': qty, 'time': Time,}
+
+        t = list(pnl.keys())
+        t.append('BTCBRL')
+        data = candlestick(tickers=t, limit=limit, interval=interval)
+
+        # plot_candlestick(data=data)
+        # PortfolioData = data
+
+
+def get_portfolio(portfolio_keys=['00']):
+    for key in portfolio_keys:
+        # this portfolio should be saved as output from run_strategy
+        # this should be done in a different way if buying assets through api
+        # create exception for "CTSIBTC": {"price": ["0.00002303", "0.00001603"], "qty": ["140.00000000", "81.00000000"], "time": [1628535432451, 1637159419580], "portfolio": "00"} / first info is not from portfolio 00
+        portfolio = pd.read_csv('portfolios/' + key + '.csv')
+
+        AllTickers = tickers_list()
+        holding = list(portfolio['asset'])
+
+        conversionBNB = candlestick('BTCBNB')
+
+        tickers = []
+        for i in AllTickers:
+            for j in holding:
+                if i[0:len(j)] == j and (i[-3:] == 'BRL' or i[-3:] == 'BTC'):
+                    tickers.append(i)
+        
+        TradeHistory = trades(tickers)
+
+        # INSERT: check if asset is not in sheets file before assigning to current portfolio
+
+        pnl = {}
+        for s in TradeHistory:
+            price = []
+            qty = []
+            Time = []
+            orderId = []
+            for v in s:
+                if v['isBuyer'] == True:
+                    price.append(v['price'])
+                    qty.append(v['qty'])
+                    Time.append(v['time'])
+                    orderId.append(v['orderId'])
+                    pnl[v['symbol']] = {
+                        'price': price, 
+                        'qty': qty, 
+                        'time': Time, 
+                        # 'orderId' : orderId, 
+                        'portfolio' : key,
+                    }
+
+        update_value(worksheetName='Portfolios', data=json.loads(str(pnl).replace('\'', '\"')))
+        # gsheets('update_cell', spreadsheetName='Cryptocurrencies Report Spreadsheet', worksheetNumber=0, cell='A1', data=json.loads(str(pnl).replace('\'', '\"')))
+
+
+def gsheets(action, data=None, cell=None, spreadsheetName=None, spreadsheetKey=None, spreadsheetLink=None, worksheetNumber=None, worksheetName=None):
+    gc = pygsheets.authorize(service_file='client_secret.json')
+
+    if spreadsheetName is not None:
+        # 1. Open spreadsheet by name 
+        sh = gc.open(spreadsheetName) # open spreadsheet
+    elif spreadsheetKey is not None:
+        # 2. Open spreadsheet by key
+        sh = gc.open_by_key(spreadsheetKey)
+    elif spreadsheetLink is not None:
+        # 3. Open spredhseet by link
+        sh = gc.open_by_link(spreadsheetLink)
+    else:
+        print('No spreadsheet specified')
+
+    # Open worksheet:
+    if worksheetNumber is not None:
+        wk = sh[worksheetNumber] # Open first worksheet of spreadsheet
+    elif worksheetName is not None:
+        wk = sh.worksheet[worksheetName] # sheet1 is name of first worksheet
+
+    # Actions:
+    if action == 'update_cell':
+        wk.update_value(cell, data)
+    elif action == 'get_values':
+        values = wk.get_all_values(include_tailing_empty=False)
+    elif action == 'create_worksheet':
+        if worksheetName in str(sh.worksheets()):
+            print('Worksheet ' + worksheetName + ' already exists')
+        else:
+            sh.add_worksheet(worksheetName,rows=250, cols=20)
+
+    return values
+
+
+def plot_candlestick(data, key='percentage', width = .4, width2 = .05, col1 = 'green', col2 = 'red'):
+    for k in data.keys():
+        # convert data to numeric
+        for x in data[k].columns:
+            data[k][x] = pd.to_numeric(data[k][x])
+
+        # set datetime index (causing plot error)
+        # data[k].set_index('open_datetime', inplace=True)
+        # data[k].index = pd.to_datetime(data[k].index,unit='ms')
+
+        #define up and down prices
+        up = data[k][data[k]['close']>=data[k]['open']]
+        down = data[k][data[k]['close']<data[k]['open']]
+
+        if key == 'percentage':
+            # change perspective to percentage
+            base = data[k]['open'][0]
+            for x in up.columns:
+                up[x] = (up[x]-base)/base
+            for x in down.columns:
+                down[x] = (down[x]-base)/base
+        else:
+            pass
+
+        #create figure
+        plt.figure()
+
+        #plot up prices
+        plt.bar(up.index,up.close-up.open,width,bottom=up.open,color=col1)
+        plt.bar(up.index,up.high-up.close,width2,bottom=up.close,color=col1)
+        plt.bar(up.index,up.low-up.open,width2,bottom=up.open,color=col1)
+
+        #plot down prices
+        plt.bar(down.index,down.close-down.open,width,bottom=down.open,color=col2)
+        plt.bar(down.index,down.high-down.open,width2,bottom=down.open,color=col2)
+        plt.bar(down.index,down.low-down.close,width2,bottom=down.close,color=col2)
+
+        # define table data
+        TableDataUp = up.close-up.open
+        TableDataDown = down.close-down.open
+        TableData = TableDataUp.append(TableDataDown)
+        TableData.sort_index(inplace=True)
+        TableData = TableData*100
+        ColLabels = list(TableData.index)
+        TableData = list(TableData)
+
+        # Add a table at the bottom of the axes
+        plt.table(cellText=[['%.2f' % i for i in TableData]],
+                            rowLabels=['Daily delta (%)'],
+                            # rowColours=colors,
+                            colLabels=ColLabels,
+                            loc='bottom')
+
+        # Adjust layout to make room for the table:
+        plt.subplots_adjust(left=0.2, bottom=0.2)
+
+        #rotate x-axis tick labels
+        plt.xticks(ticks=[], rotation=45, ha='right')
+
+        # set title
+        plt.title(k)
+
+        #display candlestick chart
+        plt.show()
+
+
+def create_worksheet(worksheetName, spreadsheetName='Cryptocurrencies Report Spreadsheet'):
+    gc = pygsheets.authorize(service_file='client_secret.json')
+    sh = gc.open(spreadsheetName)
+    if worksheetName in str(sh.worksheets()):
+        print('Worksheet ' + worksheetName + ' already exists')
+    else:
+        sh.add_worksheet(worksheetName,rows=250, cols=20)
+
+
+def set_dataframe(worksheetName, data, cell='A1', copy_index=True, spreadsheetName='Cryptocurrencies Report Spreadsheet', clear=False):
+    gc = pygsheets.authorize(service_file='client_secret.json')
+    sh = gc.open(spreadsheetName)
+    wk = sh.worksheet_by_title(worksheetName)
+    if clear == True:
+        wk.clear('A1')
+    wk.set_dataframe(df=data, start=cell, copy_index=True)
+    print('DataFrame set into ' + worksheetName + ' worksheet')
+
+
+def update_value(worksheetName, data, cell='A1', spreadsheetName='Cryptocurrencies Report Spreadsheet'):
+    gc = pygsheets.authorize(service_file='client_secret.json')
+    sh = gc.open(spreadsheetName)
+    wk = sh.worksheet_by_title(worksheetName)
+    wk.update_value(val=data, addr=cell)
+    print('Value updated in cell ' + cell + ', worksheet ' + worksheetName)
+
+
+def get_values(worksheetName, spreadsheetName='Cryptocurrencies Report Spreadsheet'):
+    gc = pygsheets.authorize(service_file='client_secret.json')
+    sh = gc.open(spreadsheetName)
+    wk = sh.worksheet_by_title(worksheetName)
+    values = wk.get_all_values(include_tailing_empty=False)
+    return values
+
+
+def pnl(tradingFee=0.00075):
+    # sellPrices = prices()[1]
+    portfolios = get_values('Portfolios')
+    pctChange = pd.DataFrame()
+    priceSum = pd.DataFrame()
+    for p in portfolios:
+        if len(p) != 0:
+            # convert portfolios from list of lists to dictionary 
+            data = json.loads(p[0])
+            create_worksheet('Portfolio ' + data[list(data)[0]]['portfolio'])
+            counter = 0
+            conversion = pd.DataFrame(candlestick('BTCBRL')['BTCBRL'])
+            conversion['open_datetime'] = pd.to_datetime(conversion['open_datetime'], unit='ms')
+            conversion.set_index('open_datetime', inplace=True)
+
+            for k in data.keys():
+                create_worksheet(k)
+                a = candlestick(k)
+                b = pd.DataFrame(a[k])
+
+                datetimeFilter = pd.to_datetime(data[k]['time'][0], unit='ms').round(freq='H') - datetime.timedelta(hours=1)
+                b['open_datetime'] = pd.to_datetime(b['open_datetime'], unit='ms')
+                b['close_datetime'] = pd.to_datetime(b['close_datetime'], unit='ms')
+                b = b[b['open_datetime'] >= datetimeFilter]
+
+                buyPrice = sum(pd.to_numeric(data[k]['price'])*pd.to_numeric(data[k]['qty']))/sum(pd.to_numeric(data[k]['qty']))
+                buyPrice = buyPrice*(1+tradingFee)
+                
+                b['close'].iloc[0] = buyPrice.copy()
+                b['open'].iloc[0] = buyPrice.copy()
+                b['open'] = pd.to_numeric(b['open']).copy()
+                b['close'] = pd.to_numeric(b['close']).copy()
+
+                if counter == 0:
+                    pctChange.index = a[k]['open_datetime']
+                    priceSum.index = a[k]['open_datetime']
+                    counter += 1
+                pctChangeIntermediate = pd.DataFrame()
+                priceSumIntermediate = pd.DataFrame()
+
+                pctChangeIntermediate[k] = (b['close'] - b['close'].iloc[0])/b['close'].iloc[0]
+                pctChangeIntermediate.index = b['open_datetime'].copy()
+                priceSumIntermediate[k] = b['close'].copy()
+                priceSumIntermediate.index = b['open_datetime'].copy()
+                conversionFiltered = conversion['close'][conversion.index >= priceSumIntermediate.index.min()]
+                
+                # convert BTC values to BRL
+                if k[-3:] == 'BTC':
+                    conversionFiltered = pd.DataFrame(pd.to_numeric(conversion['close'])[conversion.index >= priceSumIntermediate.index.min()])
+                    priceSumIntermediate = pd.DataFrame(priceSumIntermediate[k].multiply(conversionFiltered['close']), columns=[k], index=priceSumIntermediate.index)
+
+                pctChange = pctChange.merge(pctChangeIntermediate, how='left', left_index=True, right_index=True)
+                priceSum = priceSum.merge(priceSumIntermediate, how='left', left_index=True, right_index=True)
+
+                set_dataframe(worksheetName=k, data=b, clear=True)
+            
+            pctChange.dropna(how='all', inplace=True)
+
+            # FIX!! if all assets don't start at same date then pnl for portfolio will be an aproximate because of argument "how='any'"
+            priceSum.dropna(how='any', inplace=True)
+            priceSum.fillna(0.0, inplace=True)
+            priceSum = priceSum.sum(axis=1)
+
+            priceSum = pd.DataFrame(priceSum)
+            priceSum['pct'] = (priceSum[0] - priceSum[0][0])/priceSum[0][0]
+            priceSum.columns = ['price', 'pct_change']
+
+            pctChange = pctChange.merge(priceSum, how='left', left_index=True, right_index=True)
+
+            set_dataframe(worksheetName='Portfolio ' + data[list(data)[0]]['portfolio'], data=pctChange, clear=True)
+            update_value(worksheetName='Portfolio ' + data[list(data)[0]]['portfolio'], data='Datetime', cell='A1')
+
+                # HOW:
+                    #1. get candlestick data for all assets in portfolio ok
+                    #2. filter candlestick data for datetimes greater than asset buying datetime
+                    #3. make asset buying as first row in candlestick data
+                    #4. convert to BRL quote asset
+                
+
 
 # build_portfolio variables:
 #   [0]: build new portfolio
 #   [1]: calculate Markowitz for new portfolio
 build_portfolio = [0, 0]
+RealTime = 0
 if __name__ == "__main__":
     
     if build_portfolio[0] == 1:
@@ -358,4 +669,22 @@ if __name__ == "__main__":
         if build_portfolio[1] == 1:
             g, h = markovitz(f)
     
+    if RealTime == 1:
+        real_time_pnl()
+    elif RealTime == 2:
+        portfolio_delta()
+
+    # get_portfolio()
     pnl()
+    # next steps:
+
+        # Paste current portfolio data in Sheets
+            # Get pnl views in sheets
+                # for each asset separately
+                # for all investments
+                # for each portfolio
+
+        # check date when portfolio was bought to know when to sell
+
+        # adjust real_time_pnl and portfolio_delta to contemplate many portfolios at once
+            # finish function get_portfolio()
