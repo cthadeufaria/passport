@@ -17,7 +17,7 @@ def binance_data(): # used for debugging
 def order_book(tickers):
     order_book = {}
     for t in tickers:
-        r = requests.get(endpoints['order_book']+'?'+'symbol='+str(t)+'&limit=100', auth=(auth_dict['key'], auth_dict['skey']))
+        r = requests.get(endpoints['order_book']+'?'+'symbol='+str(t)+'&limit=500', auth=(auth_dict['key'], auth_dict['skey']))
         order_book[t] = r.json()
     return order_book
 
