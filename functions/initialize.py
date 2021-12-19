@@ -19,7 +19,11 @@ def initialize(api_type = 'prod'):
         'order' : '/api/v3/order',
         'test_order' : '/api/v3/order/test',
         'trades' : '/api/v3/myTrades',
+        'options_info' : '/vapi/v1/optionInfo',
+        'options_order_book' : '/vapi/v1/depth',
+        'options_mark_price' : '/vapi/v1/mark',
     }
+
 
     if api_type == 'test':
         main_endpoint = 'https://testnet.binance.vision'
@@ -29,15 +33,19 @@ def initialize(api_type = 'prod'):
         }
     elif api_type == 'prod':
         main_endpoint = 'https://api1.binance.com'
-        # choose auth for each main endpoint
+        optionsEndpoint = 'https://vapi.binance.com'
         auth_dict = {
             'key' : os.environ.get('SPOT_KEY'),
             'skey' : os.environ.get('SPOT_SKEY'),
         }
 
+
     # complete endpoints strings
     for i in endpoints:
-        if endpoints[i].find(main_endpoint) == -1:
+        # if endpoints[i].find(main_endpoint) == -1:
+        if i[0:7] == 'options':
+            endpoints[i] = optionsEndpoint + endpoints[i]
+        else:
             endpoints[i] = main_endpoint + endpoints[i]
         
     print(endpoints)

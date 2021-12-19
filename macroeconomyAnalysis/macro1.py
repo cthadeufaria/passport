@@ -16,7 +16,7 @@ import pandas as pd
 import pandas_datareader.data as web
 import numpy as np
 import matplotlib.pyplot as plt
-from handle_api import candlestick
+from functions.handle_api import candlestick
 from sklearn.linear_model import LinearRegression
 
 

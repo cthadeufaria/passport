@@ -14,12 +14,31 @@ def binance_data(): # used for debugging
     r7 = requests.get(endpoints['best_price']+'?'+'symbol=BNBBTC', auth=(auth_dict['key'], auth_dict['skey']))
 
 
-def order_book(tickers):
+def order_book(tickers, key):
+    # key='spot' or key=0 -> spot info / key='option' or key=1 -> option info
+    if key==0:
+        endpoint=endpoints['order_book']
+    elif key==1:
+        endpoint=endpoints['options_order_book']
+
     order_book = {}
     for t in tickers:
-        r = requests.get(endpoints['order_book']+'?'+'symbol='+str(t)+'&limit=500', auth=(auth_dict['key'], auth_dict['skey']))
+        r = requests.get(endpoint+'?'+'symbol='+str(t)+'&limit=100', auth=(auth_dict['key'], auth_dict['skey']))
         order_book[t] = r.json()
     return order_book
+    
+
+def options_info():
+    r = requests.get(endpoints['options_info'], auth=(auth_dict['key'], auth_dict['skey']))
+    return r.json()
+
+
+def markPrice(tickers):
+    markPrice = {}
+    for t in tickers:
+        r = requests.get(endpoints['options_mark_price'] +'?'+'symbol='+str(t), auth=(auth_dict['key'], auth_dict['skey']))
+        markPrice[t] = r.json()
+    return markPrice
 
 
 def ping():
