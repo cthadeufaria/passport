@@ -12,11 +12,11 @@
 
 
 import quandl
-import pandas as pd 
+import pandas as pd
 import pandas_datareader.data as web
 import numpy as np
 import matplotlib.pyplot as plt
-from functions.handle_api import candlestick
+from .. import investing
 from sklearn.linear_model import LinearRegression
 
 
