@@ -1,5 +1,6 @@
 import time
 import pandas as pd
+import numpy as np
 from datetime import datetime, timedelta
 from handle_api import order_book, candlestick, options_info, markPrice
 
@@ -15,8 +16,8 @@ class Portfolio:
 
     def getInfo(self):
         # Quote asset's info:
-        self.assetPriceHistory = candlestick(tickers=[self.asset], interval='1m')
-        self.assetOrderBook = order_book([self.asset], key=0)
+        self.assetPriceHistory = candlestick(tickers=[self.asset], interval='1d')
+        # self.assetOrderBook = order_book([self.asset], key=0)
         print('Asset\'s info complete')
 
         # Option's info:
@@ -56,22 +57,38 @@ class Portfolio:
 
 
     def ewma(self):
-        ewmaData = pd.DataFrame(data=self.assetPriceHistory[list(self.assetPriceHistory.keys())[0]]['close'])
-        ewmaData.columns = [list(self.assetPriceHistory.keys())[0]]
+        asset = list(self.assetPriceHistory.keys())[0]
+        ewmaData = pd.DataFrame(data=self.assetPriceHistory[asset]['close'])
+        ewmaData.columns = [asset]
 
-        priceAverage = (
-            pd.to_numeric(self.assetOrderBook[list(self.assetPriceHistory.keys())[0]]['asks'][0][0]) +
-            pd.to_numeric(self.assetOrderBook[list(self.assetPriceHistory.keys())[0]]['bids'][0][0])
-        )/2
+        # priceAverage = (
+        #     pd.to_numeric(self.assetOrderBook[asset]['asks'][0][0]) +
+        #     pd.to_numeric(self.assetOrderBook[asset]['bids'][0][0])
+        # )/2
 
-        newRow = {list(self.assetPriceHistory.keys())[0] : priceAverage}
+        # newRow = {asset : priceAverage}
 
-        ewmaData = ewmaData.append(newRow, ignore_index=True)
-        ewmaData[list(self.assetPriceHistory.keys())[0]] = pd.to_numeric(ewmaData[list(self.assetPriceHistory.keys())[0]])
-        ewmaData = ewmaData.pct_change()
-        ewmaData = ewmaData.ewm(alpha=0.94).mean()
+        # ewmaData = ewmaData.append(newRow, ignore_index=True)
+        ewmaData[asset] = pd.to_numeric(ewmaData[asset])
+
+        window = 30  # trading days in rolling window
+        days_per_year = 252  # trading days per year
+        ann_factor = days_per_year / window
+
+        ewmaData['log_rtn'] = np.log(ewmaData[asset]).diff()
+
+        # Classical (returns are demeaned, dof=1)
+        ewmaData['real_var'] = ewmaData['log_rtn'].rolling(window).var() * ann_factor
+        ewmaData['real_vol'] = np.sqrt(ewmaData['real_var'])
+
+        ewmaData['ewma_vol'] = ewmaData['log_rtn'].ewm(alpha=0.94).std() * ann_factor
         
-        self.assetVolatility = ewmaData.iloc[-1][0]
+        self.assetVolatility = ewmaData['ewma_vol'].iloc[-1]
+
+
+    def checkGetPosition(self):
+        pass
+
 
 
 time.sleep(3)

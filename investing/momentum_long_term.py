@@ -546,7 +546,7 @@ def create_worksheet(worksheetName, spreadsheetName='Cryptocurrencies Report Spr
     gc = pygsheets.authorize(service_file='client_secret.json')
     sh = gc.open(spreadsheetName)
     if worksheetName in str(sh.worksheets()):
-        print('Worksheet ' + worksheetName + ' already exists')
+        print('Worksheet ' + worksheetName + ' already exists; not created')
     else:
         sh.add_worksheet(worksheetName,rows=250, cols=20)
 
@@ -597,6 +597,7 @@ def pnl(tradingFee=0.00075):
                 a = candlestick(k)
                 b = pd.DataFrame(a[k])
 
+                # FIX! datetimefilter only works if candlestick begins after assets' buying datetime
                 datetimeFilter = pd.to_datetime(data[k]['time'][0], unit='ms').round(freq='H') - datetime.timedelta(hours=1)
                 b['open_datetime'] = pd.to_datetime(b['open_datetime'], unit='ms')
                 b['close_datetime'] = pd.to_datetime(b['close_datetime'], unit='ms')
@@ -620,6 +621,7 @@ def pnl(tradingFee=0.00075):
                 pctChangeIntermediate[k] = (b['close'] - b['close'].iloc[0])/b['close'].iloc[0]
                 pctChangeIntermediate.index = b['open_datetime'].copy()
                 priceSumIntermediate[k] = b['close'].copy()
+                priceSumIntermediate[k] = priceSumIntermediate[k]*sum(pd.to_numeric(data[k]['qty']))
                 priceSumIntermediate.index = b['open_datetime'].copy()
                 conversionFiltered = conversion['close'][conversion.index >= priceSumIntermediate.index.min()]
                 
