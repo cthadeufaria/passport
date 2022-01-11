@@ -72,7 +72,7 @@ class Portfolio:
         ewmaData[asset] = pd.to_numeric(ewmaData[asset])
 
         window = 30  # trading days in rolling window
-        days_per_year = 252  # trading days per year
+        days_per_year = 365  # trading days per year
         ann_factor = days_per_year / window
 
         ewmaData['log_rtn'] = np.log(ewmaData[asset]).diff()
@@ -97,6 +97,9 @@ time.sleep(3)
 portfolio = Portfolio(0, 'BTC options arbitrage', 'BTCUSDT')
 portfolio.getInfo()
 portfolio.ewma()
+
+for k in portfolio.impliedVolatility.keys():
+    print(k + ' askIV: ' + portfolio.impliedVolatility[k]['data'][0]['askIV'] + ' / ' + k + ' bidIV: ' + portfolio.impliedVolatility[k]['data'][0]['bidIV'])
 
 
 # EWMA (exponential decay = 0.94)
