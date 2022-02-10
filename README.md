@@ -17,12 +17,7 @@ git merge <nome do branch para merge>
 1. Black-Litterman
 2. PID
 3. Hedged (How?)
-
-
-# to do
-1. Get exam results
-2. Book mecanotherapy
-3. Book teeth cleansing
-4. Surf lessons
-5. Upwork proposal
-6. Search for development course in Brisbane
+4. Refined 3-month momentum (Use less assets)
+    What do the winning assets have in common as  in Jagadeesh, Titman?
+5. Value / Growth investing
+x. Fourier decomposition to invest in many cycles
