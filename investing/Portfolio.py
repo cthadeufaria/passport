@@ -98,6 +98,8 @@ portfolio = Portfolio(0, 'BTC options arbitrage', 'BTCUSDT')
 portfolio.getInfo()
 portfolio.ewma()
 
+print('Asset volatility = ' + str(portfolio.assetVolatility))
+
 for k in portfolio.impliedVolatility.keys():
     print(k + ' askIV: ' + portfolio.impliedVolatility[k]['data'][0]['askIV'] + ' / ' + k + ' bidIV: ' + portfolio.impliedVolatility[k]['data'][0]['bidIV'])
 

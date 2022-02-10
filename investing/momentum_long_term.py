@@ -311,15 +311,17 @@ def real_time_pnl(portfolio_keys=['00']):
             qty = []
             Time = []
             for v in s:
-                if v['isBuyer'] == True:
-                    price.append(v['price'])
-                    qty.append(v['qty'])
-                    Time.append(v['time'])
-                    pnl[v['symbol']] = {'price': price, 'qty': qty, 'time': Time,}
-
+                if type(s) == type(list()):
+                    if v['isBuyer'] == True:
+                        price.append(v['price'])
+                        qty.append(v['qty'])
+                        Time.append(v['time'])
+                        pnl[v['symbol']] = {'price': price, 'qty': qty, 'time': Time,}
+                elif type([s]) == type(dict()):
+                    print('code: ' + str(s['code']))
         while True:
             Psell = prices()[1]
-            conversion = prices()[1]['BTCBRL']
+            conversion = Psell['BTCBRL']
 
             print('\n\n')
             print(str(datetime.datetime.now()) + ' | Portfolio ' + str(key))
@@ -663,7 +665,7 @@ def pnl(tradingFee=0.00075):
 #   [0]: build new portfolio
 #   [1]: calculate Markowitz for new portfolio
 build_portfolio = [0, 0]
-RealTime = 0
+RealTime = 1
 if __name__ == "__main__":
     
     if build_portfolio[0] == 1:

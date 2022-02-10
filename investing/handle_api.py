@@ -43,7 +43,8 @@ def markPrice(tickers):
 
 def ping():
     r = requests.get(endpoints['test'])
-    print('server ping: ' + str(r))
+    print('ping: ' + str(r))
+    return r
 
 
 def get_timestamp():
