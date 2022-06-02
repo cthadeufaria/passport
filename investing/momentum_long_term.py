@@ -17,7 +17,7 @@ import numpy as np
 import time, datetime, pygsheets, json
 
 
-def sample_space(OneYearData, MinimumValue=0.5, MinimumVolume=10000):
+def sample_space(OneYearData, MinimumValue=0.5, MinimumVolume=10000, filter_period = 30):
     # MinimumValue = Minimum value of asset in USDT / MinimumVolume = Minimum average volume of asset in last 30 days
     # Exclude assets with less than 12 months of return data (ok)
     # Filter largest assets (ok)
@@ -26,16 +26,29 @@ def sample_space(OneYearData, MinimumValue=0.5, MinimumVolume=10000):
     EnoughReturnData = {k:v for k,v in OneYearData.items() if len(v) == 365}
     print('EnoughReturnData length = ' + str(len(EnoughReturnData)))
 
-    LargestAssets = {k:v for k,v in EnoughReturnData.items() if sum(pd.to_numeric(v['high'][-30:]))/30 >= MinimumValue}
+    LargestAssets = {k:v for k,v in EnoughReturnData.items() if sum(pd.to_numeric(v['high'][-filter_period:]))/filter_period >= MinimumValue}
     print('LargestAssets length = ' + str(len(LargestAssets)))
 
-    LiquidAssets = {k:v for k,v in LargestAssets.items() if sum(pd.to_numeric(v['volume'][-30:]))/30 >= MinimumVolume}
+    # LargestAssets_2: use market_cap as variable
+    LargestAssets_2 = {k:v for k,v in EnoughReturnData.items() if sum(pd.to_numeric(v['high'][-filter_period:]))/filter_period >= MinimumValue}
+    print('LargestAssets length = ' + str(len(LargestAssets)))
+
+    LiquidAssets = {k:v for k,v in LargestAssets.items() if sum(pd.to_numeric(v['volume'][-filter_period:]))/filter_period >= MinimumVolume}
     print('LiquidAssets length = ' + str(len(LiquidAssets)))
+
+    last_decile_1 = decile(data = EnoughReturnData, filter_period = filter_period, column = 'high')[-1]
+    ld_1_group = {k:v for k, v in EnoughReturnData.items() if sum(pd.to_numeric(v['high'][-filter_period:]))/filter_period >= last_decile_1}
+
+    last_decile_2 = decile(data = EnoughReturnData, filter_period = filter_period, column = 'volume')[-1]
+    ld_2_group = {k:v for k, v in EnoughReturnData.items() if sum(pd.to_numeric(v['volume'][-filter_period:]))/filter_period >= last_decile_2}
+
+    print(ld_1_group.keys())
+    print(ld_2_group.keys())
 
     return LiquidAssets
 
 
-def beta(data, base_asset='BTCUSDT', p=0.3):
+def beta(data, base_asset='BTCUSDT', p=0.3, filter_period = 30):
     # Eliminate assets with abs(beta) greater than 'p' (ok)
 
     df = pd.DataFrame()
@@ -65,13 +78,19 @@ def beta(data, base_asset='BTCUSDT', p=0.3):
         beta[c] = (model.coef_[0])
         print(str(c)+'s beta = '+str(model.coef_[0]))
 
+    beta_abs = {k:abs(v) for k,v in beta.items()}
+    first_decile = decile(data = beta_abs, filter_period = filter_period, column = None)[0]
+    ld_3_group = {k:v for k, v in beta_abs.items() if v<=first_decile}
+
+    print(ld_3_group.keys())
+
     beta = {k:v for k,v in beta.items() if abs(v)<=p}
 
     LowBetaAssets = {k:v for k,v in data.items() if (k == pd.Series(beta.keys())).any()}
     # LowBetaAssets['BTCUSDT'] = data['BTCUSDT']
     # LowBetaAssets['ETHUSDT'] = data['ETHUSDT']
     print('LowBetaAssets length: ' + str(len(LowBetaAssets)) + ' rows')
-    
+
     return LowBetaAssets
 
 
@@ -268,13 +287,14 @@ def markovitz(data):
 def run_strategy():
     # Get tickers + data from specific market:
     t = tickers_list(market='USDT')
-    data = candlestick(tickers=t, limit=365, interval='1d')
+    data = candlestick(tickers=t, limit=365, interval='1d', endTime = 1637140000000)
 
     # Screen nº 1:
     a = sample_space(data)
 
     # Screen nº 2:
-    b = beta(a)
+    # b = beta(a)
+    b = beta(data)
 
     # Screen nº 3:
     c = calculate_momentum(b)
@@ -287,6 +307,23 @@ def run_strategy():
     f = momentum_quality(e)
     
     return f
+
+
+def decile(data, filter_period, column):
+    l = list()
+    for k in data.keys():
+        if type(data[k]) == type(pd.DataFrame()):
+            value = data[k][column]
+            l.append(sum(pd.to_numeric(value[-filter_period:]))/filter_period)
+        else:
+            value = data[k]
+            l.append(pd.to_numeric(value))
+    var = np.array(l)
+    p_range = np.arange(10, 100, 10)
+    percentile = np.percentile(var, p_range)
+    print(percentile)
+
+    return percentile
 
 
 def real_time_pnl(portfolio_keys=['00']):
@@ -664,8 +701,8 @@ def pnl(tradingFee=0.00075):
 # build_portfolio variables:
 #   [0]: build new portfolio
 #   [1]: calculate Markowitz for new portfolio
-build_portfolio = [0, 0]
-RealTime = 1
+build_portfolio = [1, 0]
+RealTime = 0
 if __name__ == "__main__":
     
     if build_portfolio[0] == 1:
@@ -680,6 +717,10 @@ if __name__ == "__main__":
 
     # get_portfolio()
     pnl()
+
+
+    # analyzing deciles
+
     # next steps:
 
         # Paste current portfolio data in Sheets

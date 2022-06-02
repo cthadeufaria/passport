@@ -19,5 +19,7 @@ git merge <nome do branch para merge>
 3. Hedged (How?)
 4. Refined 3-month momentum (Use less assets)
     What do the winning assets have in common as  in Jagadeesh, Titman?
+        * Check what are the deciles for each portfolio screen individually then cross information with buy and hold portfolio chosen with arbitrary screen thresholds
+        * Check momentum_outliers funciton with information on referenced papers in Jagadeesh and Titman. Is it corroborated by researched evidences?
 5. Value / Growth investing
 x. Fourier decomposition to invest in many cycles

@@ -96,7 +96,7 @@ def price_hist(tickers=['BNBBTC'], apikey=auth_dict['key']):
     return data
 
 
-def candlestick(tickers, limit=1000, interval='1h'):
+def candlestick(tickers, limit=1000, interval='1h', endTime = None):
 #     Kline/Candlestick chart intervals:
 # m -> minutes; h -> hours; d -> days; w -> weeks; M -> months
 #     1m / 3m / 5m / 15m / 30m / 1h / 2h / 4h / 6h / 8h / 12h / 1d / 3d / 1w / 1M
@@ -105,7 +105,11 @@ def candlestick(tickers, limit=1000, interval='1h'):
     if type(tickers) != list:
         tickers=[tickers]
     for t in tickers:
-        r4 = requests.get(endpoints['candlestick']+'?'+'symbol='+ t +'&interval='+interval+'&limit=' + str(limit), auth=(auth_dict['key'], auth_dict['skey']))
+        if endTime == None:
+            url = endpoints['candlestick']+'?'+'symbol='+ t +'&interval='+interval+'&limit=' + str(limit)
+        else:
+            url = endpoints['candlestick']+'?'+'symbol='+ t +'&interval='+interval+'&limit=' + str(limit) + '&endTime=' + str(endTime)
+        r4 = requests.get(url, auth=(auth_dict['key'], auth_dict['skey']))
         candle_columns=['open_datetime', 'open', 'high', 'low', 'close', 'volume', 'close_datetime', 'quote_volume', 'n_trades', 'taker_buy_asset_vol', 'taker_buy_quote_vol', 'ignore']
         candle_info = pd.DataFrame(data=r4.json(), columns=candle_columns)
         # path = '/home/carlos/Documents/BTC_data_2/'+t+'.csv'
