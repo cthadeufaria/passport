@@ -707,6 +707,7 @@ if __name__ == "__main__":
     
     if build_portfolio[0] == 1:
         f = run_strategy()
+        print(f)
         if build_portfolio[1] == 1:
             g, h = markovitz(f)
     
