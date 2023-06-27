@@ -282,7 +282,7 @@ def markovitz(data):
     print(sharpe_portfolio.T)
 
     return min_variance_port, sharpe_portfolio
-
+#
 
 def run_strategy():
     # Get tickers + data from specific market:
