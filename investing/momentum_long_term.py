@@ -717,7 +717,7 @@ if __name__ == "__main__":
         portfolio_delta()
 
     # get_portfolio()
-    pnl()
+    # pnl()
 
 
     # analyzing deciles
